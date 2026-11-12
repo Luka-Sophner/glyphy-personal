@@ -1,0 +1,87 @@
+name: Build Glyphy Android APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: glyphy-android-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      GLYPHY_ANDROID: '1'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Check signing setup
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [[ '${{ github.event.repository.private }}' != 'true' ]]; then
+            echo '::error::Use a PRIVATE repository for Glyphy.'
+            exit 1
+          fi
+          if [[ -z "$KEYSTORE" || -z "$PASSWORD" ]]; then
+            echo '::error::Complete GITHUB_ANDROID_GUIDE.md signing setup first.'
+            exit 1
+          fi
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK 36
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'platform-tools'
+      - name: Install dependencies
+        run: |
+          if [[ -f package-lock.json ]]; then
+            npm ci --no-audit --no-fund
+          else
+            npm install --no-audit --no-fund
+          fi
+      - name: Build local Glyphy web assets
+        run: |
+          node --test --test-isolation=none tests/android.test.mjs tests/android-cloud.test.mjs
+          npm run build
+          node scripts/check-android.mjs --dist
+      - name: Create and synchronize Android project
+        run: |
+          if [[ ! -d android ]]; then
+            npx --no-install cap add android
+          fi
+          test -f android/gradlew
+          node scripts/cloud-android.mjs prepare
+          npx --no-install cap sync android
+          node scripts/check-android.mjs --dist --synced
+      - name: Build unsigned release
+        run: |
+          chmod +x android/gradlew
+          cd android
+          ./gradlew --no-daemon --stacktrace assembleRelease
+      - name: Sign and verify APK
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: node scripts/cloud-android.mjs sign
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Glyphy-Android-APK
+          path: |
+            APK/Glyphy.apk
+            APK/SHA256SUMS.txt
+            APK/build-info.json
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0

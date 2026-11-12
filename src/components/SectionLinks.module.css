@@ -1,0 +1,3 @@
+.list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--space-4); padding: 0; list-style: none; margin-block: var(--space-8); }
+.list a { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); min-height: 5rem; padding: var(--space-5); height: 100%; border-radius: var(--radius-panel); background: var(--color-panel); text-decoration: none; font-weight: 700; overflow-wrap: anywhere; }
+.list a:hover { outline: 2px solid var(--color-accent); outline-offset: 2px; }

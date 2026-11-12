@@ -1,0 +1,8 @@
+{
+  "appId": "com.glyphy.personal",
+  "appName": "Glyphy",
+  "webDir": "dist",
+  "server": { "hostname": "localhost", "androidScheme": "https", "cleartext": false },
+  "android": { "allowMixedContent": false, "backgroundColor": "#FFFDFA" },
+  "plugins": { "SystemBars": { "insetsHandling": "css", "initialViewportFitValueHint": "contain", "style": "LIGHT", "hidden": false } }
+}

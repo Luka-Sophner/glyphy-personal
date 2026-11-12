@@ -1,0 +1,41 @@
+name: Setup Glyphy signing (ONCE)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: glyphy-android-release
+  cancel-in-progress: false
+
+jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Require private repository
+        run: test '${{ github.event.repository.private }}' = 'true'
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Create encrypted signing backup
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: node scripts/signing-backup.mjs create
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Glyphy-Signing-Backup-KEEP
+          path: APK/Glyphy-signing-backup.encrypted.json
+          if-no-files-found: error
+          retention-days: 1

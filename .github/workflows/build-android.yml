@@ -53,7 +53,7 @@ jobs:
           fi
       - name: Build local Glyphy web assets
         run: |
-          node --test --test-isolation=none tests/android.test.mjs tests/android-cloud.test.mjs
+          node --test tests/android.test.mjs tests/android-cloud.test.mjs
           npm run build
           node scripts/check-android.mjs --dist
       - name: Create and synchronize Android project

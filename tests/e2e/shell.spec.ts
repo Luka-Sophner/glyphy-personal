@@ -18,8 +18,10 @@ test('шесть экранов, навигация и границы диало
   const firstRow = page.locator('.symbol-grid').first().locator('button');
   await expect(firstRow).toHaveCount(2);
   expect(await page.locator('.symbol-grid').first().evaluate(element => getComputedStyle(element).gridTemplateColumns.split(' ').length)).toBe(5);
-  const boxes = await firstRow.evaluateAll(elements => elements.map(element => element.getBoundingClientRect().top));
-  expect(new Set(boxes).size).toBe(1);
+  // Cards enter with staggered transforms. Check their final rendered positions.
+  await expect.poll(() => firstRow.evaluateAll(elements => elements.length === 2 &&
+    elements.every(el => getComputedStyle(el).opacity === '1' && getComputedStyle(el).transform === 'none') &&
+    elements[0].getBoundingClientRect().top === elements[1].getBoundingClientRect().top)).toBe(true);
   await check('home');
   await page.getByRole('button', { name: 'Открыть меню', exact: true }).click();
   await check('menu');

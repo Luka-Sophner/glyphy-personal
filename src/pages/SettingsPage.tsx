@@ -2,6 +2,7 @@ import { nativeRuntime } from '../features/native/adapter.mjs';
 import { useEffect, useRef, useState } from 'react';
 import { useBlocker } from 'react-router-dom';
 import { repository } from '../db/repository';
+import { initializeDatabase } from '../features/symbols/demo';
 import { Modal } from '../components/Modal';
 import { Icon } from '../components/Icon';
 import { type PreparedArchive, type ImportMode } from '../features/transfer/archive';
@@ -26,6 +27,7 @@ export function SettingsPage() {
     finally { running.current = false; setBusy(false); }
   };
   const backup = () => operation(async () => {
+    await initializeDatabase();
     const { exportArchive } = await import('../features/transfer/archive');
     const { downloadArchive } = await import('../features/transfer/browser');
     const archive = await exportArchive(repository.db, setMessage);

@@ -12,6 +12,7 @@ test('settings ZIP restores into an isolated browser context without duplicates'
     await target.goto('/#/settings');
     await target.getByLabel('ZIP-архив словаря', { exact: true }).setInputFiles(path);
     await expect(target.getByRole('dialog', { name: 'Импорт резервной копии' })).toBeVisible();
+    await expect(target.getByRole('dialog')).toContainText('Карточек: 2.');
     await target.getByRole('radio', { name: 'Заменить', exact: true }).check();
     await expect(target.getByRole('button', { name: 'Заменить словарь', exact: true })).toBeDisabled();
     await expect(target.getByRole('button', { name: 'Скачать резервную копию', exact: true })).toBeVisible();

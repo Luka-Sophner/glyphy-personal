@@ -3,6 +3,7 @@ import type { SymbolCard, MediaAsset, CategoryMeaning } from '../types/index.js'
 import { categories } from '../lib/categories.js';
 import { createId } from '../lib/id.js';
 import type { GlyphRecord, DiaryEntry, DiaryGroup } from '../types/glyphs-diary.js';
+import { readMedia, type StoredMediaAsset } from './media-storage.js';
 
 export interface StoredSymbolCard extends SymbolCard { categories: string[] }
 export interface StoredGlyphRecord extends GlyphRecord { imageIds: string[] }
@@ -15,7 +16,7 @@ export const schemaV5 = { ...schemaV4, diaryEntries: `${schemaV3.diaryEntries},g
 
 export class GlyphyDatabase extends Dexie {
   cards!: Table<StoredSymbolCard, string>;
-  media!: Table<MediaAsset, string>;
+  media!: Table<MediaAsset, string, StoredMediaAsset>;
   meta!: Table<DatabaseMeta, string>;
   glyphs!: Table<StoredGlyphRecord, string>;
   diaryEntries!: Table<DiaryEntry, string>;
@@ -55,5 +56,6 @@ export class GlyphyDatabase extends Dexie {
     });
     // Optional membership leaves every old entry, date and Blob untouched.
     this.version(5).stores(schemaV5);
+    this.media.hook('reading', readMedia);
   }
 }

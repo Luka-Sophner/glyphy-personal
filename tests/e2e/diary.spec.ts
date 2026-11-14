@@ -72,8 +72,8 @@ test('local diary search does not mix sections and survives closing the entry', 
 test('closing entry restores the diary scroll; plus opens the unified editor', async ({ page }) => {
   await page.setViewportSize({ width: 393, height: 852 }); await seedDiary(page);
   const card = page.getByRole('button', { name: 'Открыть запись: Панорамное хайку', exact: true }); await card.scrollIntoViewIfNeeded();
-  const previous = await page.evaluate(() => scrollY); await card.click(); await page.keyboard.press('Escape'); await expect(page.locator('dialog')).toHaveCount(0);
-  expect(Math.abs(await page.evaluate(() => scrollY) - previous)).toBeLessThan(3);
+  const previous = await page.evaluate(() => matchMedia('(max-width: 767px)').matches ? document.getElementById('content')!.scrollTop : scrollY); await card.click(); await page.keyboard.press('Escape'); await expect(page.locator('dialog')).toHaveCount(0);
+  expect(Math.abs(await page.evaluate(() => matchMedia('(max-width: 767px)').matches ? document.getElementById('content')!.scrollTop : scrollY) - previous)).toBeLessThan(3);
   await page.locator('.nav-add').click(); await expect(page.getByRole('heading', { name: 'Новая запись дневника', exact: true })).toBeVisible();
   await expect(page.locator('dialog input[type=file]')).toHaveCount(3); await expect(page.getByRole('textbox', { name: 'Название', exact: true })).toBeVisible(); await expect(page.locator('.diary-card')).toHaveCount(3);
 });

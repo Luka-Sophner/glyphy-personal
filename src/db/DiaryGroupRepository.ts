@@ -3,12 +3,15 @@ import type { DiaryGroup, DiaryGroupInput, UpdateOptions } from '../types/glyphs
 import { createId } from '../lib/id.js';
 import type { MediaAsset } from '../types/index.js';
 import { collectUnusedMedia, validateNewMedia } from './media-lifecycle.js';
+import { storeMedia } from './media-storage.js';
 import { assertUuid, assertRevision, nextTimestamp, requiredText } from './model-validation.js';
 
 export class DiaryGroupRepository {
   constructor(readonly db: GlyphyDatabase) {}
   async list() { return (await this.db.diaryGroups.toArray()).sort((a, b) => a.order - b.order || a.id.localeCompare(b.id)); }
   async save(input: DiaryGroupInput, id?: string, options: UpdateOptions = {}, newCover?: MediaAsset): Promise<DiaryGroup> {
+    if (newCover) validateNewMedia(newCover);
+    const storedCover = newCover ? await storeMedia(newCover) : undefined;
     return this.db.transaction('rw', [this.db.diaryGroups, this.db.diaryEntries, this.db.media, this.db.cards, this.db.glyphs], async () => {
       const old = id ? await this.db.diaryGroups.get(id) : undefined;
       if (id) { assertUuid(id); if (!old) throw new Error('Группа удалена.'); assertRevision(old.updatedAt, options.expectedUpdatedAt); }
@@ -19,7 +22,7 @@ export class DiaryGroupRepository {
       if (newCover) {
         validateNewMedia(newCover);
         if (newCover.id !== coverImageId) throw new Error('Изображение не соответствует обложке.');
-        await this.db.media.add(newCover);
+        await this.db.media.add(storedCover!);
       }
       if (coverImageId && !await this.db.media.get(requiredText(coverImageId, 'Обложка', 160))) throw new Error('Изображение обложки не найдено.');
       const group: DiaryGroup = { id: old?.id ?? createId(), title, coverEntryId, order: old?.order ?? groups.reduce((max, group) => Math.max(max, group.order), -1) + 1, createdAt: old?.createdAt ?? stamp, updatedAt: stamp };

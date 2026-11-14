@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 
 const root = new URL('../', import.meta.url);
-for (const file of ['db/database.ts', 'db/repository.ts', 'db/GlyphRepository.ts', 'db/media-lifecycle.ts', 'db/model-validation.ts', 'lib/id.ts', 'lib/categories.ts', 'types/index.ts', 'types/glyphs-diary.ts', 'features/glyphs/editor.ts', 'features/glyphs/search.ts', 'features/glyphs/composition-search.ts', 'features/symbols/search.ts']) {
+for (const file of ['db/media-storage.ts', 'db/storage-errors.ts', 'db/database.ts', 'db/repository.ts', 'db/GlyphRepository.ts', 'db/media-lifecycle.ts', 'db/model-validation.ts', 'lib/id.ts', 'lib/categories.ts', 'types/index.ts', 'types/glyphs-diary.ts', 'features/glyphs/editor.ts', 'features/glyphs/search.ts', 'features/glyphs/composition-search.ts', 'features/symbols/search.ts']) {
   const destination = new URL(`.verification/combination-tests/src/${file.replace(/\.ts$/, '.js')}`, root);
   await mkdir(dirname(fileURLToPath(destination)), { recursive: true });
   await writeFile(destination, ts.transpileModule(await readFile(new URL(`src/${file}`, root), 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText);

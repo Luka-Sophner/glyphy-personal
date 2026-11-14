@@ -6,6 +6,18 @@ import crypto from 'node:crypto';
 import { encryptBackup, decryptBackup } from '../scripts/signing-backup.mjs';
 import { prepareCloudAndroid } from '../scripts/cloud-android.mjs';
 
+test('release workflow retains working SDK setup, Node 22 test flags and signing identity', () => {
+  const workflow = fs.readFileSync('.github/workflows/build-android.yml', 'utf8');
+  assert.match(workflow, /android-actions\/setup-android@v4/);
+  assert.match(workflow, /node-version: '22'/);
+  assert(!workflow.includes('--test-isolation'));
+  assert.match(workflow, /java-version: '21'/);
+  assert.match(workflow, /build-tools;36\.0\.0/);
+  assert.match(workflow, /name: Glyphy-Android-APK/);
+  assert(!workflow.includes('setup-android-signing.yml'));
+  assert.match(fs.readFileSync('scripts/cloud-android.mjs', 'utf8'), /'--ks-key-alias', 'glyphy'/);
+});
+
 test('signing backup restores exact key bytes, rejects wrong password and modified data', () => {
   const key = crypto.randomBytes(4096), password = 'test-only-password-123456789';
   const encrypted = encryptBackup(key, password);

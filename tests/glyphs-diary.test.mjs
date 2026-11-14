@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 import ts from 'typescript';
 const root = new URL('../', import.meta.url);
-for (const file of ['features/glyphs/editor.ts','features/symbols/search.ts','db/database.ts','db/repository.ts','db/media-lifecycle.ts','db/model-validation.ts','db/GlyphRepository.ts','db/DiaryRepository.ts','lib/id.ts','lib/categories.ts','types/index.ts','types/glyphs-diary.ts','features/transfer/archive.ts','features/transfer/modules.ts','features/diary/media-policy.ts','features/transfer/image-header.ts','features/transfer/zip-safety.ts','features/transfer/known-demo-svg.ts']) {
+for (const file of ['features/glyphs/editor.ts','features/symbols/search.ts','db/media-storage.ts', 'db/storage-errors.ts', 'db/database.ts','db/repository.ts','db/media-lifecycle.ts','db/model-validation.ts','db/GlyphRepository.ts','db/DiaryRepository.ts','lib/id.ts','lib/categories.ts','types/index.ts','types/glyphs-diary.ts','features/transfer/archive.ts','features/transfer/modules.ts','features/diary/media-policy.ts','features/transfer/image-header.ts','features/transfer/zip-safety.ts','features/transfer/known-demo-svg.ts']) {
   const source = await readFile(new URL(`src/${file}`, root), 'utf8');
   const destination = new URL(`.verification/glyphs-diary-tests/src/${file.replace(/\.ts$/, '.js')}`, root);
   await mkdir(dirname(fileURLToPath(destination)), { recursive: true });

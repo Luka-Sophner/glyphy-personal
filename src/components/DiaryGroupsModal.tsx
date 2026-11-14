@@ -1,3 +1,4 @@
+import { mediaSaveError } from '../db/storage-errors';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useBlocker, useLocation, useNavigate } from 'react-router-dom';
 import type { DiaryGroup } from '../types/glyphs-diary';
@@ -74,25 +75,25 @@ export function DiaryGroupsModal() {
         const available = new Set(entries.map(entry => entry.id)); await setGroupEntries(assignmentId, selected.filter(id => available.has(id))); initialSelection.current = selectionFingerprint;
       }
       finish();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Не удалось сохранить изменения.'); }
+    } catch (cause) { setError(mediaSaveError(cause)); }
     finally { writing.current = false; setBusy(false); }
   };
   const uploadCover = async (file: File) => {
     if (writing.current) return;
     writing.current = true; setBusy(true); setError('');
     try { const asset = await prepareDiaryMedia(file); settled.current = false; setNewCover(asset); setCoverImageId(asset.id); setCoverId(null); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'Не удалось загрузить обложку.'); }
+    catch (cause) { setError(mediaSaveError(cause)); }
     finally { writing.current = false; setBusy(false); }
   };
   const commitOrder = async (ids: string[]) => {
     if (writing.current) return;
     writing.current = true; setBusy(true); setError('');
     try { await reorderGroups(ids); }
-    catch (cause) { setOrder(groups.map(group => group.id)); setError(cause instanceof Error ? cause.message : 'Порядок не сохранён.'); }
+    catch (cause) { setOrder(groups.map(group => group.id)); setError(mediaSaveError(cause)); }
     finally { writing.current = false; setBusy(false); }
   };
   const move = (id: string, delta: number) => { if (writing.current || dragging.current) return; const next = [...orderRef.current], index = next.indexOf(id), target = index + delta; if (index < 0 || target < 0 || target >= next.length) return; [next[index], next[target]] = [next[target], next[index]]; setOrder(next); orderRef.current = next; void commitOrder(next); };
-  const remove = async () => { if (!deleteId || writing.current) return; writing.current = true; setBusy(true); setError(''); try { await deleteGroup(deleteId); setDeleteId(null); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Не удалось удалить группу.'); } finally { writing.current = false; setBusy(false); } };
+  const remove = async () => { if (!deleteId || writing.current) return; writing.current = true; setBusy(true); setError(''); try { await deleteGroup(deleteId); setDeleteId(null); } catch (cause) { setError(mediaSaveError(cause)); } finally { writing.current = false; setBusy(false); } };
   const discard = () => {
     const current = original.current && groups.find(group => group.id === original.current!.id); setTitle(current?.title ?? ''); setCoverId(current?.coverEntryId ?? null); setCoverImageId(current?.coverImageId ?? null); setNewCover(undefined); initialForm.current = JSON.stringify({ title: current?.title ?? '', coverId: current?.coverEntryId ?? null, coverImageId: current?.coverImageId ?? null });
     const ids = entries.filter(entry => entry.groupId === assignmentId).map(entry => entry.id); setSelected(ids); initialSelection.current = JSON.stringify([...ids].sort()); settled.current = true; guard.current = false; if (blocker.state === 'blocked') blocker.proceed();

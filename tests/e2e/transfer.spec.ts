@@ -21,7 +21,7 @@ test('settings ZIP restores into an isolated browser context without duplicates'
     await target.getByLabel('ZIP-архив словаря', { exact: true }).setInputFiles(path);
     await target.getByRole('button', { name: 'Объединить словари', exact: true }).click();
     await expect(target.getByText('Импорт завершён. Добавлено: 0. Уже существовали: 2.', { exact: true })).toBeVisible();
-    await target.getByRole('button', { name: 'Главная', exact: true }).click();
+    await target.locator('.nav-center').click();
     await expect(target.locator('.symbol-card:not([disabled])')).toHaveCount(4);
     await target.getByRole('button', { name: 'Открыть карточку: Вода', exact: true }).click();
     await expect(target.locator('.preview-image')).toHaveJSProperty('naturalWidth', 948);
@@ -32,9 +32,16 @@ test('return to Home replays the entrance, closing a popup keeps the same visit'
   await page.goto('/?demo=1#/');
   const app = page.locator('.app');
   const before = Number(await app.getAttribute('data-home-visit'));
+  await page.evaluate(() => {
+    (window as any).__launchElements = [document.querySelector('.app-header'), document.querySelector('.bottom-navigation')];
+  });
   await page.getByRole('button', { name: 'Настройки', exact: true }).click();
-  await page.getByRole('button', { name: 'Главная', exact: true }).click();
+  await page.locator('.nav-center').click();
   await expect(app).toHaveAttribute('data-home-visit', String(before + 1));
+  expect(await page.evaluate(() => {
+    const [header, nav] = (window as any).__launchElements;
+    return header === document.querySelector('.app-header') && nav === document.querySelector('.bottom-navigation');
+  })).toBe(true);
   await page.getByRole('button', { name: 'Открыть карточку: Вода', exact: true }).click();
   await page.getByRole('button', { name: 'Закрыть карточку', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);

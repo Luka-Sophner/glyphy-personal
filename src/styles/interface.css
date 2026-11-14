@@ -52,7 +52,7 @@
 .category-row > span:last-child { color: var(--color-panel); font-size: calc(53.882 * var(--u)); line-height: 1.2; letter-spacing: -0.035em; font-weight: 900; overflow-wrap: anywhere; }
 .content-fade { position: fixed; top: calc(1128 * var(--u)); bottom: 0; left: 50%; transform: translateX(-50%); width: calc(1180 * var(--u)); pointer-events: none; z-index: 5; background: linear-gradient(to bottom, transparent 0, var(--page-bg) calc(802 * var(--u)), var(--page-bg) 100%); }
 .app--category .content-fade { top: calc(1145 * var(--u)); }
-.app:has(.dictionary-list) .content-fade, .app:has(.placeholder-page) .content-fade { display: none; }
+.app:has(.placeholder-page) .content-fade, .app:has(.placeholder-page) .content-fade-top { display: none; }
 .bottom-navigation { --nav-ink: var(--color-accent); --orb-bg: var(--color-accent); --orb-ink: var(--color-background); position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(111 * var(--u) + env(safe-area-inset-bottom)); width: calc(507 * var(--u)); height: calc(163 * var(--u)); z-index: var(--z-navigation); color: var(--nav-ink); }
 .bottom-navigation button { position: absolute; padding: 0; border: 0; display: grid; place-items: center; background: transparent; }
 .bottom-navigation svg { width: 100%; height: 100%; }

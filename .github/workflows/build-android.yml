@@ -51,17 +51,36 @@ jobs:
           else
             npm install --no-audit --no-fund
           fi
+      - name: Verify safe source synchronization
+        shell: pwsh
+        run: ./tests/github-sync.test.ps1
       - name: Build local Glyphy web assets
         run: |
-          node --test tests/android.test.mjs tests/android-cloud.test.mjs
           npm run build
+          npm run test:all
+          npm test
           node scripts/check-android.mjs --dist
+      - name: Install test browser
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Check desktop and mobile interface
+        run: npm run test:e2e -- --workers=2
+      - name: Save failed UI test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Glyphy-UI-Diagnostics
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 3
       - name: Create and synchronize Android project
         run: |
           if [[ ! -d android ]]; then
             npx --no-install cap add android
           fi
-          test -f android/gradlew
+          if [[ ! -f android/gradlew ]]; then
+            echo '::error::Android folder is incomplete: Gradle wrapper missing. Do not upload generated android/ from Windows.'
+            exit 1
+          fi
           node scripts/cloud-android.mjs prepare
           npx --no-install cap sync android
           node scripts/check-android.mjs --dist --synced
@@ -85,3 +104,6 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
+      - name: Explain failed build
+        if: failure()
+        run: echo '::error::Open the FIRST failed step above. Keep the existing signing Secrets. Do not rerun signing setup or delete phone data.'

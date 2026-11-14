@@ -1,3 +1,4 @@
+import { mediaSaveError } from '../../db/storage-errors.js';
 import type { DiaryEntry, DiaryInput } from '../../types/glyphs-diary.js';
 import type { MediaAsset } from '../../types/index.js';
 import { localDate, validateLocalDate } from '../../db/model-validation.js';
@@ -28,8 +29,4 @@ export function makeDiaryCover(ids: string[], id: string) { return ids.includes(
 export function pendingDiaryMedia(ids: string[], pending: ReadonlyMap<string, MediaAsset>) {
   return ids.flatMap(id => pending.has(id) ? [pending.get(id)!] : []);
 }
-export function diarySaveError(cause: unknown) {
-  const error = cause as { name?: string; message?: string; inner?: { name?: string } } | null;
-  if (error?.name === 'QuotaExceededError' || error?.inner?.name === 'QuotaExceededError') return 'Недостаточно места на устройстве. Освободите место или уберите часть фотографий. Черновик остался в редакторе.';
-  return error?.message || 'Не удалось сохранить запись. Данные и фотографии остались в редакторе.';
-}
+export function diarySaveError(cause: unknown) { return mediaSaveError(cause); }

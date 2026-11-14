@@ -41,6 +41,7 @@ personal/
 **/credentials.*
 APK/
 *.jpg
+!tests/fixtures/sample-photo.jpg
 *.jpeg
 *.heic
 *.webp

@@ -1,7 +1,7 @@
 * { box-sizing: border-box; }
 html { background: var(--color-background); color: var(--color-ink); font-family: var(--font-body); font-size: 16px; scrollbar-width: none; }
 body { margin: 0; min-width: 280px; }
-body[data-theme='category'] { background: var(--color-category-background); }
+html[data-theme='category'], body[data-theme='category'] { background: var(--color-category-background); }
 a { color: inherit; }
 button, input, textarea, select { font: inherit; }
 button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }

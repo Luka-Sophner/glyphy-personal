@@ -1,3 +1,10 @@
+@font-face {
+  font-family: 'Glyphy Uni Sans';
+  src: url('../assets/fonts/UniSansHeavy.otf') format('opentype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
 :root {
   /* Source: Figma MCP, 2026-11-11. All four initial colors confirmed. */
   --color-background: #fffdfa;
@@ -7,8 +14,8 @@
   --color-category-background: #8c9dad;
   --color-image-background: #ffffff;
   --color-focus: #354f67; /* Accessibility addition, not a Figma style. */
-  /* No commercial font distributed. Add a licensed @font-face before replacement. */
-  --font-display: 'Uni Sans', 'Uni Sans Heavy CAPS', 'Arial Black', 'Arial', sans-serif;
+  /* User-provided Uni Sans Heavy is bundled locally, including in the APK. */
+  --font-display: 'Glyphy Uni Sans', 'Uni Sans', 'Uni Sans Heavy CAPS', 'Arial Black', 'Arial', sans-serif;
   --font-body: 'Segoe UI', 'Arial', sans-serif;
   --weight-heavy: 900;
   --text-sm: 0.875rem;

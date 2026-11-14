@@ -2,6 +2,7 @@ import { GlyphyDatabase, type StoredSymbolCard } from './database.js';
 import { categories } from '../lib/categories.js';
 import { createId } from '../lib/id.js';
 import { collectUnusedMedia } from './media-lifecycle.js';
+import { storeMedia } from './media-storage.js';
 import type { CategoryId, CategoryMeaning, SymbolDraft, MediaAsset } from '../types/index.js';
 
 function normalizeMeanings(meanings: CategoryMeaning[]): CategoryMeaning[] {
@@ -30,6 +31,7 @@ export class SymbolRepository {
     });
   }
   async save(input: SymbolDraft, photoChange?: MediaAsset | null): Promise<StoredSymbolCard> {
+    const storedPhoto = photoChange ? await storeMedia(photoChange) : undefined;
     const meanings = normalizeMeanings(input.meanings);
     const seen = new Set<string>();
     const tags = input.tags.map(tag => tag.trim()).filter(tag => {
@@ -44,7 +46,7 @@ export class SymbolRepository {
       if (photoChange === null) imageId = null;
       else if (photoChange) {
         if (!photoChange.blob.size || !photoChange.thumbnailBlob.size || photoChange.width <= 0 || photoChange.height <= 0) throw new Error('Некорректная фотография.');
-        await this.db.media.add(photoChange); imageId = photoChange.id;
+        await this.db.media.add(storedPhoto!); imageId = photoChange.id;
       }
       if (imageId && !await this.db.media.get(imageId)) throw new Error('Фотография не найдена. Выберите её снова.');
       const now = Math.max(Date.now(), (old?.updatedAt ?? 0) + 1);
@@ -66,9 +68,10 @@ export class SymbolRepository {
     await collectUnusedMedia(this.db, id);
   }
   async seedDemo(cards: StoredSymbolCard[], media: MediaAsset[]) {
+    const storedMedia = await Promise.all(media.map(storeMedia));
     await this.db.transaction('rw', [this.db.cards, this.db.media, this.db.meta], async () => {
       if (await this.db.meta.get('demo-initialized')) return;
-      if (await this.db.cards.count() === 0) { await this.db.media.bulkAdd(media); await this.db.cards.bulkAdd(cards); }
+      if (await this.db.cards.count() === 0) { await this.db.media.bulkAdd(storedMedia); await this.db.cards.bulkAdd(cards); }
       await this.db.meta.put({ key: 'demo-initialized', value: true });
     });
   }

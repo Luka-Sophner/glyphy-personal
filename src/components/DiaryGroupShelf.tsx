@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useDiary } from '../features/diary/DiaryContext';
 import { diaryGroupCover } from '../features/diary/groups';
 import { DiaryImage } from './DiaryImage';
@@ -10,6 +10,29 @@ export function DiaryGroupShelf({ activeId, onSelect }: { activeId?: string; onS
   const { groups, entries } = useDiary(), { reduced } = useNavigationMotion();
   const covers = useMemo(() => new Map(groups.map(group => [group.id, diaryGroupCover(group, entries)])), [groups, entries]);
   const strip = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState({ before: false, more: false });
+  useLayoutEffect(() => {
+    const element = strip.current!;
+    let frame = 0, disposed = false;
+    const measure = () => {
+      frame = 0;
+      const offset = Math.max(0, element.scrollLeft);
+      const next = { before: offset > 2, more: element.scrollWidth - element.clientWidth - offset > 2 };
+      setEdges(previous => previous.before === next.before && previous.more === next.more ? previous : next);
+    };
+    const schedule = () => { if (!disposed && !frame) frame = requestAnimationFrame(measure); };
+    const resize = new ResizeObserver(schedule);
+    resize.observe(element);
+    for (const child of element.children) resize.observe(child);
+    element.addEventListener('scroll', schedule, { passive: true });
+    element.addEventListener('load', schedule, true);
+    void document.fonts.ready.then(schedule);
+    measure();
+    return () => {
+      disposed = true; cancelAnimationFrame(frame); resize.disconnect();
+      element.removeEventListener('scroll', schedule); element.removeEventListener('load', schedule, true);
+    };
+  }, [groups]);
   useEffect(() => {
     const element = strip.current;
     if (!element) return;
@@ -24,7 +47,7 @@ export function DiaryGroupShelf({ activeId, onSelect }: { activeId?: string; onS
     element.addEventListener('wheel', wheel, { passive: false });
     return () => element.removeEventListener('wheel', wheel);
   }, []);
-  return <div className="diary-group-shelf"><div ref={strip} className="diary-group-strip" role="group" aria-label="Группы дневника"><AnimatePresence initial={false}>{groups.map(group => <motion.button layout key={group.id} type="button" className="diary-group-card" aria-label={`Открыть группу: ${group.title}`} aria-pressed={activeId === group.id} onClick={() => onSelect(group.id)}
+  return <div className="diary-group-shelf" data-has-before={edges.before} data-has-more={edges.more}><div ref={strip} className="diary-group-strip" role="group" aria-label="Группы дневника"><AnimatePresence initial={false}>{groups.map(group => <motion.button layout key={group.id} type="button" className="diary-group-card" aria-label={`Открыть группу: ${group.title}`} aria-pressed={activeId === group.id} onClick={() => onSelect(group.id)}
     initial={reduced ? false : { opacity: 0, scale: .94, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: .9 }} whileTap={reduced ? undefined : { scale: animation.pressScale }} transition={reduced ? { duration: 0 } : animation.gentleSpring}>
     <span className="diary-group-cover">{covers.get(group.id) && <DiaryImage imageId={covers.get(group.id)} thumbnail alt="" />}</span><span className="diary-group-title">{group.title}</span>
   </motion.button>)}</AnimatePresence></div></div>;

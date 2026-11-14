@@ -5,6 +5,8 @@ export async function prepareMedia(blob: Blob, trustedSvg = false): Promise<Medi
   if (!blob.size || blob.size > 40 * 1024 * 1024) throw new Error('Выберите изображение размером до 40 МБ.');
   const supported = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif', 'image/bmp'];
   if (!supported.includes(blob.type) && !(trustedSvg && blob.type === 'image/svg+xml')) throw new Error('Этот формат не поддерживается. Выберите JPG, PNG, WebP, GIF, AVIF или BMP.');
+  // Immediately detach Android's selected file from its content-provider handle.
+  blob = new Blob([await blob.arrayBuffer()], { type: blob.type });
   const url = URL.createObjectURL(blob);
   try {
     const image = new Image();

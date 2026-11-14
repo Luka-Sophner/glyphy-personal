@@ -3,6 +3,10 @@ import { build, createServer, preview } from 'vite';
 import ts from 'typescript';
 import { glyphyPwa } from './pwa.mjs';
 const mode = process.argv[2] ?? 'dev';
+// Browser QA gets a separate production bundle. Never replace the APK assets.
+const e2e = mode === 'e2e';
+const e2eDirectory = '.verification/e2e-dist';
+if (e2e) process.env.GLYPHY_ANDROID = '0';
 // Restricted Windows environments may forbid the child-process pipes esbuild uses.
 // Vite/Rollup can also build with the existing TypeScript compiler in-process.
 const portable = {
@@ -21,11 +25,17 @@ const restricted = error => error?.code === 'EPERM' || /spawn EPERM/.test(String
 if (mode === 'preview') {
   const server = await preview({ configFile: false, resolve: { preserveSymlinks: true }, preview: { host: '0.0.0.0', port: 4173, strictPort: true } });
   server.printUrls();
-} else if (mode === 'build') {
-  try { await build(); } catch (error) {
+} else if (mode === 'build' || e2e) {
+  const output = e2e ? { outDir: e2eDirectory } : {};
+  try { await build({ build: output }); } catch (error) {
     if (!restricted(error)) throw error;
     console.info('Using in-process TypeScript build (Windows process restriction).');
-    await build(portable);
+    await build({ ...portable, build: { ...portable.build, ...output } });
+  }
+  if (e2e) {
+    const server = await preview({ configFile: false, build: { outDir: e2eDirectory },
+      preview: { host: '127.0.0.1', port: 5173, strictPort: true } });
+    server.printUrls();
   }
 } else {
   try { const server = await createServer(); await server.listen(); server.printUrls(); }

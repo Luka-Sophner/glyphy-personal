@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 import { exifOrientationSegment } from './fixtures/diary-images.mjs';
 const root = new URL('../', import.meta.url);
-for (const file of ['db/database.ts', 'db/repository.ts', 'db/media-lifecycle.ts', 'lib/id.ts', 'lib/categories.ts', 'types/index.ts', 'features/transfer/archive.ts', 'features/transfer/modules.ts','features/diary/media-policy.ts', 'types/glyphs-diary.ts', 'db/model-validation.ts', 'features/transfer/image-header.ts', 'features/transfer/zip-safety.ts', 'features/transfer/known-demo-svg.ts']) {
+for (const file of ['db/media-storage.ts', 'db/storage-errors.ts', 'db/database.ts', 'db/repository.ts', 'db/media-lifecycle.ts', 'lib/id.ts', 'lib/categories.ts', 'types/index.ts', 'features/transfer/archive.ts', 'features/transfer/modules.ts','features/diary/media-policy.ts', 'types/glyphs-diary.ts', 'db/model-validation.ts', 'features/transfer/image-header.ts', 'features/transfer/zip-safety.ts', 'features/transfer/known-demo-svg.ts']) {
   const source = await readFile(new URL(`src/${file}`, root), 'utf8');
   const destination = new URL(`.verification/transfer-tests/src/${file.replace(/\.ts$/, '.js')}`, root);
   await mkdir(dirname(fileURLToPath(destination)), { recursive: true });
@@ -23,7 +23,7 @@ const { emptyGlyphCells } = await import(new URL('.verification/transfer-tests/s
 const { imageDimensions } = await import(new URL('.verification/transfer-tests/src/features/transfer/image-header.js', root).href);
 
 test('phone JPEG with EXIF rotation round trips with displayed dimensions and original bytes', async t => {
-  const repo=await database(t), jpeg=await readFile(new URL('docs/screenshots/dictionary-393x852.jpg',root));
+  const repo=await database(t), jpeg=await readFile(new URL('tests/fixtures/sample-photo.jpg',root));
   const rotated=Buffer.concat([jpeg.subarray(0,2),exifOrientationSegment(6),jpeg.subarray(2)]), raw=imageDimensions(rotated,'image/jpeg');
   const photo={...asset('rotated-phone-photo'), blob:new Blob([rotated],{type:'image/jpeg'}),mimeType:'image/jpeg',width:raw.height,height:raw.width};
   await repo.save(draft('Rotated JPEG'),photo);

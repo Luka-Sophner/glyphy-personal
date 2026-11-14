@@ -7,7 +7,7 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 const root=new URL('../',import.meta.url);
-for(const file of ['db/database.ts','db/repository.ts','db/media-lifecycle.ts','db/model-validation.ts','db/GlyphRepository.ts','lib/id.ts','lib/categories.ts','types/index.ts','types/glyphs-diary.ts','features/glyphs/demo.ts','features/glyphs/search.ts','features/glyphs/routes.ts','features/glyphs/presentation.ts','features/symbols/search.ts']){
+for(const file of ['db/media-storage.ts', 'db/storage-errors.ts', 'db/database.ts','db/repository.ts','db/media-lifecycle.ts','db/model-validation.ts','db/GlyphRepository.ts','lib/id.ts','lib/categories.ts','types/index.ts','types/glyphs-diary.ts','features/glyphs/demo.ts','features/glyphs/search.ts','features/glyphs/routes.ts','features/glyphs/presentation.ts','features/symbols/search.ts']){
   const source=await readFile(new URL(`src/${file}`,root),'utf8'), destination=new URL(`.verification/glyph-gallery-tests/src/${file.replace(/\.ts$/,'.js')}`,root);
   await mkdir(dirname(fileURLToPath(destination)),{recursive:true});await writeFile(destination,ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText);
 }

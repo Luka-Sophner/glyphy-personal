@@ -9,7 +9,7 @@ import ts from 'typescript';
 
 // Compile the real repository, not a separate in-memory mock of its operations.
 const root = new URL('../', import.meta.url);
-for (const file of ['db/database.ts', 'db/repository.ts', 'db/media-lifecycle.ts', 'lib/id.ts', 'lib/categories.ts', 'types/index.ts']) {
+for (const file of ['db/media-storage.ts', 'db/storage-errors.ts', 'db/database.ts', 'db/repository.ts', 'db/media-lifecycle.ts', 'lib/id.ts', 'lib/categories.ts', 'types/index.ts']) {
   const source = await readFile(new URL(`src/${file}`, root), 'utf8');
   const destination = new URL(`.verification/db-tests/src/${file.replace(/\.ts$/, '.js')}`, root);
   await mkdir(dirname(fileURLToPath(destination)), { recursive: true });

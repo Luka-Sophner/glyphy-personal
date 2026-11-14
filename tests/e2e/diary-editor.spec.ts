@@ -23,7 +23,7 @@ async function readDiary(page: Page) {
     const entries = await get('diaryEntries'), assets = await get('media'); db.close();
     const photos = [];
     for (const asset of assets) {
-      const bytes = new Uint8Array(await asset.blob.arrayBuffer()); let binary = '';
+      const bytes = new Uint8Array((asset.blob instanceof ArrayBuffer ? asset.blob : await asset.blob.arrayBuffer())); let binary = '';
       for (let index = 0; index < bytes.length; index += 16384) binary += String.fromCharCode(...bytes.subarray(index, index + 16384));
       photos.push({ id: asset.id, width: asset.width, height: asset.height, mimeType: asset.mimeType, base64: btoa(binary) });
     }

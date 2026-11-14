@@ -4,6 +4,7 @@ import JSZip from 'jszip/dist/jszip.min.js';
 import { imageDimensions } from './image-header.js';
 import Dexie from 'dexie';
 import { collectUnusedMedia } from '../../db/media-lifecycle.js';
+import { storeMedia } from '../../db/media-storage.js';
 import { GlyphyDatabase, type StoredSymbolCard } from '../../db/database.js';
 import type { MediaAsset, SymbolCard, CategoryMeaning } from '../../types/index.js';
 import { categories } from '../../lib/categories.js';
@@ -171,6 +172,7 @@ async function sameMedia(a: MediaAsset, b: MediaAsset) {
 }
 export async function applyImport(db: GlyphyDatabase, prepared: PreparedArchive, mode: ImportMode, replaceConfirmed = false) {
   if (!['merge', 'replace'].includes(mode) || mode === 'replace' && !replaceConfirmed) return fail('Полная замена требует подтверждения.');
+  const storedMedia = new Map(await Promise.all(prepared.media.map(async asset => [asset.id, await storeMedia(asset)] as const)));
   return db.transaction('rw', [db.cards, db.media, db.meta, db.diaryEntries, db.glyphs, db.diaryGroups], async () => {
     if (mode === 'replace') {
       await db.cards.clear();
@@ -195,7 +197,7 @@ export async function applyImport(db: GlyphyDatabase, prepared: PreparedArchive,
         candidate = `import-${asset.id.slice(0, 120)}-${hash}-${++attempt}`;
         previous = await db.media.get(candidate);
       }
-      if (!previous) await db.media.add({ ...asset, id: candidate });
+      if (!previous) await db.media.add({ ...storedMedia.get(asset.id)!, id: candidate });
       mapping.set(asset.id, candidate);
     }
     const stored: StoredSymbolCard[] = cards.map(card => ({ ...card, imageId: card.imageId ? mapping.get(card.imageId) ?? fail('Не удалось восстановить фотографию.') : null, categories: [...new Set(card.meanings.map(group => group.category))] }));

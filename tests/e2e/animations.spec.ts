@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
 
-test('active menu slot becomes Home, including settings', async ({ page }) => {
-  for (const [path, slot] of [['dictionary', 'dictionary'], ['glyphs', 'glyphs'], ['diary', 'diary'], ['settings', 'settings']]) {
+test('active menu slot becomes Home in the content sections', async ({ page }) => {
+  for (const [path, slot] of [['dictionary', 'dictionary'], ['glyphs', 'glyphs'], ['diary', 'diary']]) {
     await page.goto(`/#/${path}`);
-    if (slot !== 'settings') await page.locator('.nav-center').click();
+    await page.locator('.nav-center').click();
     await expect(page.getByRole('button', { name: 'Главная', exact: true })).toHaveCount(1);
-    const home = slot === 'settings' ? page.locator('.nav-settings') : page.locator(`[data-nav-slot="${slot}"]`);
+    const home = page.locator(`[data-nav-slot="${slot}"]`);
     await expect(home).toHaveAttribute('aria-label', 'Главная');
     await home.click();
     await expect(page.getByRole('heading', { name: 'Главная', exact: true })).toBeAttached();
@@ -19,7 +19,7 @@ test('circle uses the clicked icon, browser Back restores scroll and clears laye
   // Finish only the short row entrance before measuring the source.
   await expect(row).toHaveCSS('opacity', '1');
   const rect = await row.locator('.category-circle').boundingBox();
-  const scroll = await page.evaluate(() => scrollY);
+  const scroll = await page.evaluate(() => matchMedia('(max-width: 767px)').matches ? document.getElementById('content')!.scrollTop : scrollY);
   await row.getByRole('link').click();
   const circle = page.locator('[data-route-transition="forward"]');
   await expect(circle).toBeAttached();
@@ -30,7 +30,7 @@ test('circle uses the clicked icon, browser Back restores scroll and clears laye
   await page.goBack();
   await expect(page.locator('[data-route-transition]')).toHaveCount(0, { timeout: 4000 });
   await expect(page.locator('.category-row')).toHaveCount(7);
-  expect(await page.evaluate(() => scrollY)).toBeCloseTo(scroll, 0);
+  expect(await page.evaluate(() => matchMedia('(max-width: 767px)').matches ? document.getElementById('content')!.scrollTop : scrollY)).toBeCloseTo(scroll, 0);
 });
 
 test('rapid menu and route changes do not retain overlay or focus lock', async ({ page }) => {
@@ -48,7 +48,9 @@ test('rapid menu and route changes do not retain overlay or focus lock', async (
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.getByRole('dialog').press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden');
+  if (page.viewportSize()!.width < 768) await expect(page.locator('.app-main')).toHaveCSS('overflow-y', 'auto');
+  else await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden');
+  expect(await page.locator('body').evaluate(el => el.style.overflow)).not.toBe('hidden');
   expect(errors).toEqual([]);
 });
 

@@ -31,7 +31,7 @@ export async function prepareDiaryMedia(file: File): Promise<MediaAsset> {
   const dimensions = (() => { try { return imageDimensions(header, mimeType); } catch { return undefined; } })();
   if (dimensions && (!dimensions.width || !dimensions.height || dimensions.width * dimensions.height > diaryMediaLimits.pixels)) throw new Error('Разрешение фотографии превышает 80 мегапикселей.');
   // A typed File fixes missing/incorrect OS MIME labels without changing one byte.
-  const original = new File([file], file.name || 'photo', { type: mimeType, lastModified: file.lastModified });
+  const original = new File([await file.arrayBuffer()], file.name || 'photo', { type: mimeType, lastModified: file.lastModified });
   try {
     const prepared = await prepareMedia(original);
     const needsThumbnail = !prepared.thumbnailBlob?.size || prepared.thumbnailBlob.type !== 'image/png';

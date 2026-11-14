@@ -92,8 +92,18 @@ test('group shelf hides its scrollbar and scrolls with a mouse wheel', async ({p
   await diary(page);
   for (const title of ['A','B','C','D','E','F']) await createGroup(page,title);
   const strip=page.locator('.diary-group-strip');
+  const shelf=page.locator('.diary-group-shelf');
+  await strip.evaluate(el => { el.scrollLeft = 0; });
+  await expect(shelf).toHaveAttribute('data-has-before','false');
+  await expect(shelf).toHaveAttribute('data-has-more','true');
   expect(await strip.evaluate(el=>getComputedStyle(el).scrollbarWidth)).toBe('none');
   await strip.hover(); await page.mouse.wheel(0,90);
   await expect.poll(()=>strip.evaluate(el=>el.scrollLeft)).toBeGreaterThan(0);
+  await expect(shelf).toHaveAttribute('data-has-before','true');
+  await strip.evaluate(el => { el.scrollLeft = el.scrollWidth; });
+  await expect(shelf).toHaveAttribute('data-has-more','false');
+  await expect.poll(() => shelf.evaluate(el => getComputedStyle(el, '::after').opacity)).toBe('0');
+  await strip.evaluate(el => { el.scrollLeft = 0; });
+  await expect(shelf).toHaveAttribute('data-has-before','false');
   await expect(page.locator('.diary-card')).toHaveCount(2);
 });

@@ -22,7 +22,7 @@ export function NavigationMotionProvider({ children }: { children: ReactNode }) 
   const source = useRef<Source | null>(null), homeVisited = useRef(false), sequence = useRef(0);
   const previousKey = useRef(actual.key), previousReduced = useRef(reduced), scrollLocation = useRef(actual);
   const openCategory = (categoryId: string, circle: Element | null) => {
-    if (circle) source.current = { categoryId, origin: circleOrigin(circle.getBoundingClientRect()), scrollY: window.scrollY };
+    if (circle) source.current = { categoryId, origin: circleOrigin(circle.getBoundingClientRect()), scrollY: matchMedia('(max-width: 767px)').matches ? document.getElementById('content')?.scrollTop ?? 0 : window.scrollY };
     navigate(`/category/${categoryId}`);
   };
   useLayoutEffect(() => {
@@ -34,7 +34,7 @@ export function NavigationMotionProvider({ children }: { children: ReactNode }) 
     if (!reduced && isCategory(next) && previous === '/dictionary') {
       const categoryId = next.split('/')[2];
       const circle = document.querySelector(`[data-category-id="${categoryId}"] .category-circle`);
-      if (circle) source.current = { categoryId, origin: circleOrigin(circle.getBoundingClientRect()), scrollY: window.scrollY };
+      if (circle) source.current = { categoryId, origin: circleOrigin(circle.getBoundingClientRect()), scrollY: matchMedia('(max-width: 767px)').matches ? document.getElementById('content')?.scrollTop ?? 0 : window.scrollY };
       if (source.current?.categoryId === categoryId) {
         setLayer({ id, direction: 'forward', source: source.current });
         return; // Keep the dictionary until complete viewport coverage.
@@ -51,7 +51,8 @@ export function NavigationMotionProvider({ children }: { children: ReactNode }) 
   useLayoutEffect(() => {
     const previous = scrollLocation.current; scrollLocation.current = displayedLocation;
     if (previous.key === displayedLocation.key || isModal(previous.pathname) || isModal(displayedLocation.pathname)) return;
-    window.scrollTo({ top: displayedLocation.pathname === '/dictionary' ? source.current?.scrollY ?? 0 : 0, left: 0, behavior: 'instant' });
+    const scrollTarget = matchMedia('(max-width: 767px)').matches ? document.getElementById('content') ?? window : window;
+    scrollTarget.scrollTo({ top: displayedLocation.pathname === '/dictionary' ? source.current?.scrollY ?? 0 : 0, left: 0, behavior: 'instant' });
   }, [displayedLocation]);
   useEffect(() => {
     const cancel = () => { ++sequence.current; setLayer(null); setDisplayed(actualRef.current); };

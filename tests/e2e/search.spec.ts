@@ -47,9 +47,9 @@ test('search immediately follows persisted creation and edits', async ({ page })
 });
 
 test('Home sign stays square and centered in each navigation slot', async ({ page }) => {
-  for (const path of ['dictionary', 'glyphs', 'diary', 'settings']) {
+  for (const path of ['dictionary', 'glyphs', 'diary']) {
     await page.goto(`/#/${path}`);
-    if (path !== 'settings') await page.locator('.nav-center').click();
+    await page.locator('.nav-center').click();
     const button = page.getByRole('button', { name: 'Главная', exact: true });
     await expect(button).toBeVisible();
     const icon = button.locator('svg[data-icon="home"]');

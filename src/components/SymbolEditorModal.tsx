@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useBlocker, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useSymbols } from '../features/symbols/SymbolContext';
+import { mediaSaveError } from '../db/storage-errors';
 import { prepareMedia } from '../features/symbols/media';
 import { useObjectURL } from '../hooks/useObjectURL';
 import { createId } from '../lib/id';
@@ -70,7 +71,7 @@ function Editor() {
       guard.current = false; setSaved(true); setBusy(false);
       if (blocker.state === 'blocked') blocker.reset();
       navigate(location.state?.returnTo ?? `/cards/${result.id}`, { replace: true, state: { ...location.state, backgroundPath } });
-    } catch (cause) { writeInFlight.current = false; setError(cause instanceof Error ? cause.message : 'Сохранение не удалось. Данные остались в редакторе.'); setBusy(false); }
+    } catch (cause) { writeInFlight.current = false; setError(mediaSaveError(cause)); setBusy(false); }
   };
   const missing = cardId !== 'new' && !existing;
   return <Modal labelId="editor-title" onClose={close} className="editor-modal">

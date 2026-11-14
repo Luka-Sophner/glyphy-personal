@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { performance } from 'node:perf_hooks';
@@ -68,6 +68,7 @@ test('300 and 1000 cards: reusable index, bounded search time', async () => {
     measurements.push({ cards: size, buildMs, searchP95Ms: p95Ms });
     assert.ok(p95Ms < 500, `Search unexpectedly slow: ${p95Ms}ms`);
   }
+  await mkdir(new URL('../docs/', import.meta.url), { recursive: true });
   await writeFile(new URL('../docs/search-benchmark.json', import.meta.url), JSON.stringify({ runtime: process.version, measurements, note: 'Local Node run; not a Poco X6 Pro measurement. 50 searches per size, including sorting.' }, null, 2));
   console.log(JSON.stringify(measurements));
 });

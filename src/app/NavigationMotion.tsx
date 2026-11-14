@@ -20,14 +20,14 @@ export function NavigationMotionProvider({ children }: { children: ReactNode }) 
   const actualRef = useRef(actual); actualRef.current = actual;
   const displayRef = useRef(displayedLocation); displayRef.current = displayedLocation;
   const source = useRef<Source | null>(null), homeVisited = useRef(false), sequence = useRef(0);
-  const previousKey = useRef(actual.key), previousReduced = useRef(reduced), scrollLocation = useRef(actual);
+  const previousLocation = useRef(actual), previousReduced = useRef(reduced), scrollLocation = useRef(actual);
   const openCategory = (categoryId: string, circle: Element | null) => {
     if (circle) source.current = { categoryId, origin: circleOrigin(circle.getBoundingClientRect()), scrollY: matchMedia('(max-width: 767px)').matches ? document.getElementById('content')?.scrollTop ?? 0 : window.scrollY };
     navigate(`/category/${categoryId}`);
   };
   useLayoutEffect(() => {
-    if (previousKey.current === actual.key && previousReduced.current === reduced) return;
-    previousKey.current = actual.key; previousReduced.current = reduced;
+    if (previousLocation.current === actual && previousReduced.current === reduced) return;
+    previousLocation.current = actual; previousReduced.current = reduced;
     if (isHomeReturn(displayRef.current, actual)) { homeVisited.current = false; setHomeEntranceKey(value => value + 1); }
     const id = ++sequence.current, previous = displayRef.current.pathname, next = actual.pathname;
     setLayer(null);
@@ -47,7 +47,7 @@ export function NavigationMotionProvider({ children }: { children: ReactNode }) 
       setLayer({ id, direction: 'fade' });
     }
     setDisplayed(actual);
-  }, [actual.key, actual.pathname, reduced]);
+  }, [actual, reduced]);
   useLayoutEffect(() => {
     const previous = scrollLocation.current; scrollLocation.current = displayedLocation;
     if (previous.key === displayedLocation.key || isModal(previous.pathname) || isModal(displayedLocation.pathname)) return;

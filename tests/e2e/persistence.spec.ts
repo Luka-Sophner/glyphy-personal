@@ -33,7 +33,7 @@ test('one card, several categories and original photo survive reopening', async 
   await expect(reopened.getByRole('dialog')).toHaveCount(0);
   await reopened.reload();
   await expect(reopened.locator('.symbol-card')).toHaveCount(0);
-  await expect(reopened.getByRole('status')).toContainText('Словарь пока пуст');
+  await expect(reopened.locator('.app-main .empty-state[role="status"]')).toContainText('Словарь пока пуст');
 });
 
 test('all seven category signs are local SVGs', async ({ page }) => {

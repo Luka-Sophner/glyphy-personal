@@ -1,5 +1,10 @@
 /* Preserve the existing gradient, and only animate its visibility. */
 .app { background: var(--page-bg); }
+.glyph-cell--missing { position: relative; }
+.glyph-cell--missing img + .glyph-missing-reading {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  text-align: center; background: var(--color-panel);
+}
 .app--settings .bottom-navigation .nav-center { background: var(--color-panel); color: var(--color-accent); }
 .content-fade { opacity: 0; transition: opacity 180ms ease; }
 .app[data-has-more='true'] .content-fade { opacity: 1; }

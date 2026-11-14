@@ -1,26 +1,28 @@
-param([switch]$Fetch, [string]$ProjectRoot)
+param([switch]$Fetch, [string]$ProjectRoot, [switch]$Interactive)
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'github-git.ps1')
+Initialize-GlyphyGit
 $root = if ($ProjectRoot) { [IO.Path]::GetFullPath($ProjectRoot) } else { [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..')) }
 $target = Join-Path $root 'GitHub-Glyphy'
 if (-not (Test-Path -LiteralPath (Join-Path $target '.git'))) { return }
 function Run-Git([string[]]$Arguments) {
-    $result = & git -C $target @Arguments
+    $result = Invoke-GlyphyGit -Repository $target -Arguments $Arguments -Network:($Arguments[0] -eq 'fetch') -Interactive:$Interactive
     if ($LASTEXITCODE -ne 0) { throw ('Git synchronization failed: ' + ($Arguments -join ' ')) }
     return $result
 }
-$origin = & git -C $target remote get-url origin 2>$null
+$origin = Invoke-GlyphyGit -Repository $target -Arguments @('remote','get-url','origin') 2>$null
 if ($LASTEXITCODE -ne 0) { if ($Fetch) { throw 'No origin. Publish the PRIVATE repository in GitHub Desktop first.' }; return }
-if ($origin -notmatch '^https://github\.com/Luka-Sophner/glyphy-personal(?:\.git)?$') { throw 'Unexpected origin. Review the repository address before synchronizing.' }
+if ($origin -notmatch '^https://github\.com/Luka-Sophner/glyphy-personal(?:\.git)?/?$') { throw 'Unexpected origin. Review the repository address before synchronizing.' }
 if ((Run-Git -Arguments @('branch','--show-current')) -ne 'main') { throw 'Switch GitHub-Glyphy to main in GitHub Desktop first.' }
 if ($Fetch) {
     Write-Host 'Fetching remote changes BEFORE copying or staging any source files...'
     Run-Git -Arguments @('fetch','origin') | Out-Host
 }
-& git -C $target show-ref --verify --quiet refs/remotes/origin/main
+Invoke-GlyphyGit -Repository $target -Arguments @('show-ref','--verify','--quiet','refs/remotes/origin/main')
 if ($LASTEXITCODE -ne 0) { if ($Fetch) { throw 'origin/main is unavailable.' }; return }
 $ahead = [int](Run-Git -Arguments @('rev-list','--count','HEAD..origin/main'))
 if ($ahead -eq 0) { return }
-& git -C $target merge-base --is-ancestor HEAD origin/main
+Invoke-GlyphyGit -Repository $target -Arguments @('merge-base','--is-ancestor','HEAD','origin/main')
 if ($LASTEXITCODE -ne 0) { throw 'Local and remote history diverged. No files overwritten. Resolve with assistance; never force push.' }
 if (@(Run-Git -Arguments @('status','--porcelain')).Count -gt 0) { throw 'Remote changes found, but the GitHub copy has local edits. No files overwritten. Ask to reconcile both versions before sending.' }
 $manifest = Join-Path $target '.glyphy-snapshot.json'

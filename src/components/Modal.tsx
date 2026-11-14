@@ -51,6 +51,15 @@ export function Modal({ children, labelId, onClose, className = '', elementRef }
     return () => { cancelled = true; window.clearTimeout(deadline); fade.stop(); controls.stop(); };
   }, [present, reduced, controls, backdrop, safeToRemove]);
   return <motion.dialog ref={dialog} className={`symbol-modal ${className}`} aria-labelledby={labelId} aria-modal="true" layout={!reduced} layoutScroll layoutRoot
+    onKeyDown={event => {
+      if (event.key !== 'Tab') return;
+      const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button, a[href], input, select, textarea, [tabindex]'))
+        .filter(el => el.tabIndex >= 0 && !el.matches(':disabled') && el.getClientRects().length && getComputedStyle(el).visibility === 'visible');
+      const first = controls[0], last = controls[controls.length - 1];
+      if (first && ((event.shiftKey && document.activeElement === first) || (!event.shiftKey && document.activeElement === last))) {
+        event.preventDefault(); (event.shiftKey ? last : first).focus();
+      }
+    }}
     transition={{ layout: reduced ? { duration: 0 } : animation.layout }}
     initial={reduced ? false : { opacity: 0, scale: 0.94, y: 24 }} animate={controls}
     style={{ pointerEvents: present ? 'auto' : 'none' }} onClick={event => {

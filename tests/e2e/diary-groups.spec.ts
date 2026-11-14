@@ -39,7 +39,7 @@ test('no groups keep the full feed; groups form a horizontal shelf above all pos
   await page.getByRole('button', { name: 'Открыть группу: Правила', exact: true }).click(); await page.locator('.nav-add').click();
   const group = (await read(page)).groups.find(group => group.title === 'Правила')!; await expect(page.getByRole('combobox', { name: 'Группа записи', exact: true })).toHaveValue(group.id);
   await page.getByRole('textbox', { name: 'Название', exact: true }).fill('Статья в правилах'); await page.locator('input[data-diary-upload=gallery]').setInputFiles(payload()); await expect(page.getByRole('button', { name: 'Сохранить', exact: true })).toBeEnabled(); await page.getByRole('button', { name: 'Сохранить', exact: true }).click(); await page.getByRole('button', { name: 'Закрыть запись', exact: true }).click();
-  await expect(page.locator('.diary-card-title')).toHaveText('Статья в правилах'); expect((await read(page)).entries.find(entry => entry.title === 'Статья в правилах')!.groupId).toBe(group.id);
+  await expect(page.locator('.diary-card-title')).toHaveText(['Статья в правилах']); expect((await read(page)).entries.find(entry => entry.title === 'Статья в правилах')!.groupId).toBe(group.id);
 });
 test('bulk assignment, entry picker and deleting a group retain posts and every image', async ({ page }) => {
   await diary(page); const before = await read(page); await createGroup(page, 'Правила'); await assignBoth(page, 'Правила'); await page.getByRole('button', { name: 'Закрыть управление группами', exact: true }).click();
@@ -50,7 +50,7 @@ test('bulk assignment, entry picker and deleting a group retain posts and every 
   await manage(page); await page.locator('dialog').getByRole('button', { name: 'Удалить группу: Хокку', exact: true }).click(); await expect(page.getByRole('alertdialog', { name: 'Подтверждение удаления группы', exact: true })).toContainText('Записи и фотографии сохранятся');
   await page.getByRole('button', { name: 'Удалить группу', exact: true }).click(); await expect(page.locator('dialog .diary-group-order-row')).toHaveCount(1);
   const after = await read(page); expect(after.entries).toHaveLength(2); expect(after.mediaIds).toEqual(before.mediaIds); const moved = after.entries.find(entry => entry.title === 'Первая запись')!; expect(moved.groupId).toBeNull(); expect(moved.imageIds).toEqual(before.entries.find(entry => entry.id === moved.id)!.imageIds);
-  await page.locator('dialog').getByRole('button', { name: 'Без группы', exact: true }).click(); await expect(page.locator('.diary-card-title')).toHaveText('Первая запись');
+  await page.locator('dialog').getByRole('button', { name: 'Без группы', exact: true }).click(); await expect(page.locator('.diary-card-title')).toHaveText(['Первая запись']);
 });
 test('order buttons, rename and explicit cover persist after reopening', async ({ page }) => {
   await diary(page); await createGroup(page, 'Правила'); await createGroup(page, 'Хокку'); await createGroup(page, 'Наблюдения'); await assignBoth(page, 'Правила');

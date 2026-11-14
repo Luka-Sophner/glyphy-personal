@@ -66,7 +66,7 @@ test('local diary search does not mix sections and survives closing the entry', 
   await seedDiary(page); const search = page.getByRole('searchbox', { name: 'Поиск по дневнику', exact: true });
   await search.fill('  ЛЕД  '); await expect(page.locator('.diary-card:not([disabled])')).toHaveCount(1);
   await page.getByRole('button', { name: 'Открыть запись: Два снимка', exact: true }).click(); await page.keyboard.press('Escape');
-  await expect(search).toHaveValue('  ЛЕД  '); await search.fill('12/11/2026'); await expect(page.locator('.diary-card:not([disabled])')).toHaveCount(1);
+  await expect(page.getByRole('dialog')).toHaveCount(0); await expect(search).toHaveValue('  ЛЕД  '); await search.fill('12/11/2026'); await expect(page.locator('.diary-card:not([disabled])')).toHaveCount(1);
   await search.fill('Несуществующее'); await expect(page.getByText('Ничего не найдено', { exact: true })).toBeVisible();
 });
 test('closing entry restores the diary scroll; plus opens the unified editor', async ({ page }) => {

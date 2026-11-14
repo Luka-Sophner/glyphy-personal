@@ -11,7 +11,7 @@ function Cell({ cell, symbol, rememberedBlob, interactive, onOpen }: { cell: Gly
   const image = remembered ?? (symbol?.imageId ? symbol.thumbnail : undefined);
   const missing = !!cell.symbolId && !symbol;
   const title = `${labels[cell.position]}${cell.meaningSnapshot ? `: ${cell.meaningSnapshot}` : ''}${missing ? '. Исходный символ недоступен' : ''}`;
-  const content = <>{image && <img src={image} alt="" loading="lazy" decoding="async" />}{cell.referenceValue && <span className="glyph-reference">{cell.referenceValue.kind === 'local-reference' ? '↗ ' : ''}{cell.referenceValue.value}</span>}{!image && missing && <span className="glyph-missing-reading">{cell.meaningSnapshot}</span>}</>;
+  const content = <>{image && <img src={image} alt="" loading="lazy" decoding="async" />}{cell.referenceValue && <span className="glyph-reference">{cell.referenceValue.kind === 'local-reference' ? '↗ ' : ''}{cell.referenceValue.value}</span>}{missing && <span className="glyph-missing-reading">{cell.meaningSnapshot}</span>}</>;
   return interactive && symbol ? <button type="button" className="glyph-cell" data-glyph-position={cell.position} aria-label={title} title={title} onClick={event => { event.currentTarget.focus({ preventScroll: true }); onOpen?.(cell); }}>{content}</button>
     : <span className={`glyph-cell ${missing ? 'glyph-cell--missing' : ''}`} data-glyph-position={cell.position} aria-label={title} title={title}>{content}</span>;
 }

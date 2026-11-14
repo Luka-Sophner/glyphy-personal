@@ -56,18 +56,24 @@ test('nested dictionary preview keeps one focus trap and returns to the scrolled
   await page.getByRole('button',{name:'Открыть глиф: Вода',exact:true}).click();
   const dialog=page.locator('dialog[open]');
   await expect(dialog.getByRole('button',{name:'Ядро: Вода',exact:true})).toBeVisible();
-  await dialog.evaluate(el=>{el.scrollTop=80;});
+  await expect(dialog).toHaveCSS('opacity', '1');
   const source=dialog.getByRole('button',{name:'Ядро: Вода',exact:true});
-  await source.scrollIntoViewIfNeeded();
-  const before=await dialog.evaluate(el=>el.scrollTop);
-  await source.click();
+  await source.focus();
+  await dialog.evaluate(el => { el.scrollTop = 80; });
+  // Capture the real scroll offset at activation, after browser actionability scrolling.
+  await source.evaluate(el => el.addEventListener('click', () => {
+    el.closest('dialog')!.dataset.scrollAtActivation = String(el.closest('dialog')!.scrollTop);
+  }, { capture: true, once: true }));
+  await source.press('Enter');
   await expect(page.locator('dialog[open]')).toHaveCount(1);
   await expect(dialog.getByRole('button',{name:'Закрыть карточку',exact:true})).toBeFocused();
   await expect(dialog.getByText('Явления',{exact:true})).toBeVisible();
   await expect(dialog.locator('.preview-image')).toHaveJSProperty('naturalWidth',948);
   await page.keyboard.press('Escape');
   await expect(source).toBeFocused();
-  expect(Math.abs(await dialog.evaluate(el=>el.scrollTop)-before)).toBeLessThan(2);
+  const before = await dialog.getAttribute('data-scroll-at-activation');
+  expect(Number(before)).toBeGreaterThan(0);
+  await expect.poll(async () => Math.abs(await dialog.evaluate(el => el.scrollTop) - Number(before))).toBeLessThan(2);
   await source.click();await page.goBack();await expect(source).toBeVisible();
   await expect(page.locator('dialog[open]')).toHaveCount(1);
 });
@@ -86,7 +92,7 @@ test('search is scoped to glyph fields and keeps the query across its popup',asy
   await page.goto('/?demo=1#/glyphs');const search=page.getByRole('searchbox',{name:'Поиск глифов'});
   await search.fill('  ЖИЛЬЕ  ');await expect(page.locator('.glyph-card:not([disabled])')).toHaveCount(1);
   await page.getByRole('button',{name:'Открыть глиф: Дом',exact:true}).click();await page.keyboard.press('Escape');
-  await expect(search).toHaveValue('  ЖИЛЬЕ  ');
+  await expect(page.getByRole('dialog')).toHaveCount(0); await expect(search).toHaveValue('  ЖИЛЬЕ  ');
   await search.fill('неизвестно');await expect(page.getByText('Ничего не найдено',{exact:true})).toBeVisible();
 });
 
@@ -96,6 +102,8 @@ test('unavailable source shows saved meaning without an invalid navigation',asyn
   await expect(page.getByText('Исходный символ недоступен',{exact:true})).toBeVisible();
   await expect(page.locator('dialog .glyph-cell')).toHaveCount(9);await expect(page.locator('dialog button[data-glyph-position]')).toHaveCount(0);
   await expect(page.locator('dialog .glyph-missing-reading')).toHaveText('Вода');
+  await expect(page.locator('dialog .glyph-cell--missing img')).toBeVisible();
+  await expect.poll(() => page.locator('dialog .glyph-cell--missing img').evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
 });
 
 test('normal empty gallery opens the constructor and validates the draft',async({page})=>{

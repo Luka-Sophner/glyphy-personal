@@ -11,7 +11,7 @@ export function DiaryPage() {
   const backgroundSearch = location.pathname === '/diary' ? location.search : location.state?.diaryBackgroundSearch ?? '';
   const parameters = new URLSearchParams(backgroundSearch), requested = parameters.get('group'), all = parameters.get('all') === '1';
   const activeGroup = groups.find(group => group.id === requested), unassigned = requested === 'unassigned';
-  useEffect(() => { if (location.pathname === '/diary') { rootView.groupId = activeGroup?.id ?? null; rootView.search = location.search; } }, [location.pathname, location.search, activeGroup?.id, rootView]);
+  useEffect(() => { if (location.pathname === '/diary' && !location.state?.diaryEditorFrom && !location.state?.diaryGroupsFrom && !location.state?.backgroundPath) { rootView.groupId = activeGroup?.id ?? null; rootView.search = location.search; } }, [location.pathname, location.search, activeGroup?.id, rootView]);
   const deferred = useDeferredValue(query), results = useMemo(() => diaryVisibleEntries(search(deferred), groups, requested, all, !!deferred.trim()), [search, deferred, groups, requested, all]);
   const manage = () => navigate('/diary/groups', { state: { backgroundPath: '/diary', diaryGroupsFrom: `/diary${backgroundSearch}`, diaryBackgroundSearch: backgroundSearch, diaryGroupEditor: groups.length ? undefined : 'new' } });
   const createEntry = () => navigate('/diary/new/edit', { state: { backgroundPath: '/diary', diaryEditorFrom: `/diary${backgroundSearch}`, diaryBackgroundSearch: backgroundSearch, diaryInitialGroupId: activeGroup?.id ?? null } });

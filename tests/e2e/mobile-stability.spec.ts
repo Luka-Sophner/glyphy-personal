@@ -24,12 +24,20 @@ test('font, fixed mobile search, end gradient, bottom space and responsive viewp
     const tx = db.transaction('cards','readwrite'), store = tx.objectStore('cards'), get = store.getAll();
     get.onsuccess = () => { for (let i = 0; i < 100; i++) store.put({ ...get.result[0], id: 'scroll-' + i, meanings: get.result[0].meanings.map((m: any) => ({ ...m, primary: 'Scroll ' + i })) }); };
     await new Promise<void>((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); }); db.close();
+  });
+  // Native IndexedDB writes are fixture setup, not Dexie mutations. Reopen the
+  // page so its subscription starts from the persisted fixture snapshot.
+  await page.reload();
+  await page.evaluate(async () => {
     document.documentElement.style.setProperty('--safe-area-inset-top', '24px');
+    await document.fonts.ready;
   });
   await expect.poll(() => page.locator('.symbol-card').count()).toBeGreaterThan(80);
   expect(await page.evaluate(() => document.fonts.check('900 20px "Glyphy Uni Sans"'))).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   const mobile = page.viewportSize()!.width < 768, header = page.locator('.app-header'), main = page.locator('.app-main');
+  // Visibility alone does not mean the launch transform has reached its target.
+  await expect(header).toHaveCSS('transform', 'none');
   if (mobile) {
     const before = (await header.boundingBox())!; expect(before.y).toBeGreaterThanOrEqual(24);
     await expect(page.locator('.content-fade-top')).toHaveCSS('opacity','0');

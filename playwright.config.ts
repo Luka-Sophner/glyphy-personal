@@ -6,10 +6,10 @@ process.env.GLYPHY_TEST_PWA = '1';
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
-  use: { baseURL: 'http://127.0.0.1:5173', trace: 'retain-on-failure' },
+  use: { baseURL: 'http://127.0.0.1:4175', trace: 'retain-on-failure' },
   webServer: {
     command: 'node scripts/vite.mjs e2e',
-    url: 'http://127.0.0.1:5173',
+    url: 'http://127.0.0.1:4175',
     reuseExistingServer: false,
   },
   projects: [

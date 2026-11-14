@@ -34,7 +34,7 @@ if (mode === 'preview') {
   }
   if (e2e) {
     const server = await preview({ configFile: false, build: { outDir: e2eDirectory },
-      preview: { host: '127.0.0.1', port: 5173, strictPort: true } });
+      preview: { host: '127.0.0.1', port: 4175, strictPort: true } });
     server.printUrls();
   }
 } else {

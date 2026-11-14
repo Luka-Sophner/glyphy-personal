@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon, type IconName } from './Icon';
 import { motion } from '../lib/motion';
 import { animation } from '../lib/animations';
@@ -12,7 +12,7 @@ const slots = [
 ] as const;
 
 export function BottomNavigation() {
-  const navigate = useNavigate();
+  const navigate = useNavigate(), current = useLocation();
   const { displayedLocation: location, reduced } = useNavigationMotion();
   const path = location.pathname.startsWith('/glyphs/') ? '/glyphs' : location.pathname.startsWith('/cards/') ? location.state?.backgroundPath ?? '/' : location.pathname;
   const active = path === '/dictionary' || path.startsWith('/category/') ? 'dictionary'
@@ -28,8 +28,8 @@ export function BottomNavigation() {
   };
   const openSettings = () => {
     setOpen(false);
-    if (!settings) navigate('/settings', { state: { settingsFrom: {
-      pathname: location.pathname, search: location.search, state: location.state, icon: centerIcon,
+    if (current.pathname !== '/settings') navigate('/settings', { state: { settingsFrom: {
+      pathname: current.pathname, search: current.search, state: current.state, icon: centerIcon,
     } } });
   };
   const [open, setOpen] = useState(path === '/menu');
@@ -59,7 +59,10 @@ export function BottomNavigation() {
       })}
     </div>
     <motion.button className="nav-add" type="button" aria-label={path === '/glyphs' ? 'Добавить глиф' : 'Добавить карточку'} whileTap={reduced ? undefined : { scale: animation.pressScale }}
-      onClick={() => { setOpen(false); navigate(path === '/glyphs' ? '/glyphs/new/edit' : '/cards/new/edit', { state: { backgroundPath: path, ...(settings ? { settingsFrom } : {}), ...(path === '/glyphs' ? { glyphEditorFrom: '/glyphs' } : {}) } }); }}><Icon name="plus" /></motion.button>
+      onClick={() => { setOpen(false); if (current.pathname === '/diary') {
+        const group = new URLSearchParams(current.search).get('group');
+        navigate('/diary/new/edit', { state: { backgroundPath: '/diary', diaryEditorFrom: '/diary' + current.search, diaryBackgroundSearch: current.search, diaryInitialGroupId: group === 'unassigned' ? null : group } }); return;
+      } navigate(path === '/glyphs' ? '/glyphs/new/edit' : '/cards/new/edit', { state: { backgroundPath: path, ...(settings ? { settingsFrom } : {}), ...(path === '/glyphs' ? { glyphEditorFrom: '/glyphs' } : {}) } }); }}><Icon name="plus" /></motion.button>
     <motion.button className="nav-orb nav-center" type="button" aria-label={settings ? 'Вернуться назад' : open ? 'Закрыть меню' : 'Открыть меню'} title={settings ? 'Вернуться на предыдущую страницу' : active ?? 'Меню'}
       aria-expanded={settings ? undefined : open} aria-controls={settings ? undefined : 'navigation-fan'} whileTap={reduced ? undefined : { scale: animation.pressScale }} onClick={toggle}>
       <motion.span className="nav-current-icon" key={centerIcon} initial={reduced ? false : { opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={animation.fade}>

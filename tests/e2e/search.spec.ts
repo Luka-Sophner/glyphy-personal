@@ -41,6 +41,7 @@ test('search immediately follows persisted creation and edits', async ({ page })
   await page.getByRole('textbox', { name: 'Основное значение группы 1', exact: true }).fill('Озеро');
   await page.getByRole('button', { name: 'Сохранить карточку', exact: true }).click();
   await page.getByRole('button', { name: 'Закрыть карточку', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByText('Ничего не найдено', { exact: true })).toBeVisible();
   await search.fill('озеро');
   await expect(page.getByRole('button', { name: 'Открыть карточку: Озеро', exact: true })).toBeVisible();

@@ -18,6 +18,7 @@ test('circle uses the clicked icon, browser Back restores scroll and clears laye
   await row.scrollIntoViewIfNeeded();
   // Finish only the short row entrance before measuring the source.
   await expect(row).toHaveCSS('opacity', '1');
+  await row.getByRole('link').click({ trial: true });
   const rect = await row.locator('.category-circle').boundingBox();
   const scroll = await page.evaluate(() => matchMedia('(max-width: 767px)').matches ? document.getElementById('content')!.scrollTop : scrollY);
   await row.getByRole('link').click();

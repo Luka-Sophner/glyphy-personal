@@ -42,7 +42,7 @@ export function configureAndroid() {
     fs.mkdirSync(`${res}/mipmap-${density}`, { recursive: true });
     for (const name of ['ic_launcher', 'ic_launcher_round', 'ic_launcher_foreground']) fs.copyFileSync('public/icons/icon-192.png', `${res}/mipmap-${density}/${name}.png`);
   }
-  write(`${res}/values/glyphy_colors.xml`, '<?xml version="1.0" encoding="utf-8"?><resources><color name="glyphy_icon_background">#8c9dad</color></resources>');
+  write(`${res}/values/glyphy_colors.xml`, '<?xml version="1.0" encoding="utf-8"?><resources><color name="glyphy_icon_background">#FF527E</color></resources>');
   for (const name of ['ic_launcher', 'ic_launcher_round']) write(`${res}/mipmap-anydpi-v26/${name}.xml`, '<?xml version="1.0" encoding="utf-8"?><adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"><background android:drawable="@color/glyphy_icon_background"/><foreground android:drawable="@drawable/glyphy_icon"/></adaptive-icon>');
   if (process.env.ANDROID_HOME) write('android/local.properties', `sdk.dir=${resolve(process.env.ANDROID_HOME).replaceAll('\\', '/')}\n`);
 }

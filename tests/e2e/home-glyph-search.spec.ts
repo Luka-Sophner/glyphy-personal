@@ -1,0 +1,52 @@
+import { test, expect } from '@playwright/test';
+
+test('Home search combines dictionary cards and glyphs and restores the query after a preview', async ({ page }, testInfo) => {
+  await page.goto('/?demo=1#/');
+  await expect(page.getByRole('button', { name: 'Открыть карточку: Вода', exact: true })).toBeVisible();
+  await expect(page.locator('.glyph-card')).toHaveCount(0);
+  const search = page.getByRole('searchbox', { name: 'Поиск по словарю', exact: true });
+  await search.fill('вода');
+  await expect(page.getByRole('button', { name: 'Открыть карточку: Вода', exact: true })).toBeVisible();
+  const glyph = page.getByRole('button', { name: 'Открыть глиф: Вода', exact: true });
+  await expect(glyph).toBeVisible();
+  await expect(glyph.locator('[data-glyph-position]')).toHaveCount(9);
+  await expect(page.locator('.symbol-card')).toHaveCount(1);
+  await expect(page.locator('.glyph-card')).toHaveCount(2);
+  await expect(page.locator('.glyph-card').last()).toHaveCSS('opacity', '1');
+  await page.screenshot({ path: testInfo.outputPath('home-mixed-search.png') });
+  await glyph.click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(search).toHaveValue('вода');
+  await expect(page.locator('.home-page.search-page')).toBeVisible();
+  await page.getByRole('button', { name: 'Ядро: Вода', exact: true }).click();
+  await page.getByRole('button', { name: 'Закрыть карточку', exact: true }).click();
+  await page.getByRole('button', { name: 'Закрыть глиф', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(search).toHaveValue('вода');
+  await expect(glyph).toBeVisible();
+  await search.fill('жилье');
+  await expect(page.getByRole('button', { name: 'Открыть глиф: Дом', exact: true })).toBeVisible();
+  await search.fill('несуществующее');
+  await expect(page.getByText('Ничего не найдено', { exact: true })).toBeVisible();
+  await search.fill('');
+  await expect(page.locator('.glyph-card')).toHaveCount(0);
+  await page.goto('/?demo=1#/dictionary');
+  await search.fill('вода');
+  await expect(page.getByRole('button', { name: 'Открыть карточку: Вода', exact: true })).toBeVisible();
+  await expect(page.locator('.glyph-card')).toHaveCount(0);
+});
+
+test('typing triggers the search wobble and respects reduced motion', async ({ page }) => {
+  await page.goto('/?demo=1#/');
+  const search = page.getByRole('searchbox', { name: 'Поиск по словарю', exact: true });
+  const form = page.locator('.app-header .search-bar');
+  await search.focus();
+  await expect.poll(() => form.evaluate(el => el.getAnimations().length)).toBe(0);
+  await search.press('a');
+  expect(await form.evaluate(el => el.getAnimations().length)).toBeGreaterThan(0);
+  await expect.poll(() => form.evaluate(el => el.getAnimations().length)).toBe(0);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(page.locator('.app')).toHaveAttribute('data-reduced-motion', 'true');
+  await search.press('b');
+  expect(await form.evaluate(el => el.getAnimations().length)).toBe(0);
+});

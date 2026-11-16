@@ -8,7 +8,6 @@ import { useNavigationMotion } from '../app/NavigationMotion';
 import { Reorder, AnimatePresence, useDragControls } from '../lib/motion';
 import { animation } from '../lib/animations';
 import { Modal } from './Modal';
-import { Icon } from './Icon';
 import type { MediaAsset } from '../types';
 import { prepareDiaryMedia } from '../features/diary/media';
 import { MediaAssetImage, DiaryImage } from './DiaryImage';
@@ -18,8 +17,19 @@ function GroupOrderRow({ group, count, index, total, busy, onEdit, onEntries, on
   const controls = useDragControls(), { reduced } = useNavigationMotion();
   return <Reorder.Item as="li" value={group.id} dragListener={false} dragControls={controls} dragMomentum={false} className="diary-group-order-row" onDragStart={onDragStart} onDragEnd={onDragEnd}
     initial={reduced ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: .96 }} whileDrag={{ scale: reduced ? 1 : 1.02, zIndex: 2 }} transition={reduced ? { duration: 0 } : animation.gentleSpring}>
-    <div className="diary-group-order-heading"><button type="button" className="diary-group-drag" aria-label={`Перетащить группу: ${group.title}`} disabled={busy} onPointerDown={event => { if (!busy) controls.start(event); }}>⋮⋮</button><span><strong>{group.title}</strong><small>Записей: {count}</small></span></div>
-    <div className="diary-group-row-actions"><button type="button" aria-label={`Поднять группу: ${group.title}`} disabled={busy || index === 0} onClick={() => onMove(-1)}>↑</button><button type="button" aria-label={`Опустить группу: ${group.title}`} disabled={busy || index === total - 1} onClick={() => onMove(1)}>↓</button><button type="button" disabled={busy} onClick={onEntries}>Записи</button><button type="button" aria-label={`Редактировать группу: ${group.title}`} disabled={busy} onClick={onEdit}>Изменить</button><button type="button" aria-label={`Удалить группу: ${group.title}`} disabled={busy} onClick={onDelete}>Удалить</button></div>
+    <button type="button" className="diary-group-drag" aria-label={`Перетащить группу: ${group.title}`} title="Перетащите или используйте клавиши ↑ и ↓" disabled={busy}
+      onPointerDown={event => { if (!busy) controls.start(event); }}
+      onKeyDown={event => {
+        if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+        event.preventDefault();
+        if (!busy && (event.key === 'ArrowUp' ? index > 0 : index < total - 1)) onMove(event.key === 'ArrowUp' ? -1 : 1);
+      }}><span aria-hidden="true" /></button>
+    <div className="diary-group-order-heading"><strong>{group.title}</strong><small>Записей: {count}</small></div>
+    <div className="diary-group-row-actions">
+      <button type="button" className="diary-group-entries-action" aria-label="Записи" title={`Записи группы: ${group.title}`} disabled={busy} onClick={onEntries}><span aria-hidden="true" /></button>
+      <button type="button" className="diary-group-edit-action" aria-label={`Редактировать группу: ${group.title}`} disabled={busy} onClick={onEdit} />
+      <button type="button" className="diary-group-delete-action" aria-label={`Удалить группу: ${group.title}`} disabled={busy} onClick={onDelete}><span aria-hidden="true" /></button>
+    </div>
   </Reorder.Item>;
 }
 
@@ -98,16 +108,15 @@ export function DiaryGroupsModal() {
     const current = original.current && groups.find(group => group.id === original.current!.id); setTitle(current?.title ?? ''); setCoverId(current?.coverEntryId ?? null); setCoverImageId(current?.coverImageId ?? null); setNewCover(undefined); initialForm.current = JSON.stringify({ title: current?.title ?? '', coverId: current?.coverEntryId ?? null, coverImageId: current?.coverImageId ?? null });
     const ids = entries.filter(entry => entry.groupId === assignmentId).map(entry => entry.id); setSelected(ids); initialSelection.current = JSON.stringify([...ids].sort()); settled.current = true; guard.current = false; if (blocker.state === 'blocked') blocker.proceed();
   };
-  return <Modal elementRef={dialog} labelId="diary-groups-title" className="diary-groups-modal" onClose={close}>
-    <div className="modal-toolbar"><button type="button" className="modal-action" aria-label="Закрыть управление группами" disabled={busy} onClick={close}><Icon name="close" /></button></div>
+  return <Modal elementRef={dialog} labelId="diary-groups-title" className={`diary-groups-modal diary-groups-modal--${mode}`} onClose={close}>
+    <div className="modal-toolbar"><button type="button" className="modal-action diary-groups-close" aria-label="Закрыть управление группами" disabled={busy} onClick={close} /></div>
     <h2 className="sr-only" id="diary-groups-title">{mode === 'manage' ? 'Группы дневника' : mode === 'edit' ? original.current ? 'Редактирование группы' : 'Новая группа' : 'Записи группы'}</h2>
     {blocker.state === 'blocked' && <section className="diary-unsaved-confirm" role="alertdialog" aria-label="Несохранённые изменения группы"><p>{busy ? 'Изменения сохраняются…' : 'Сохранить изменения группы перед выходом?'}</p><button type="button" disabled={busy} onClick={() => void save()}>Сохранить и выйти</button><button type="button" disabled={busy} data-continue-groups onClick={() => blocker.reset()}>Продолжить редактирование</button><button type="button" disabled={busy} onClick={discard}>Выйти без сохранения</button></section>}
     {error && <p className="diary-groups-error" role="alert">{error}</p>}{databaseError && <p role="alert">{databaseError}</p>}
-    <section className="modal-panel diary-groups-panel" hidden={mode !== 'manage'}><h3>Группы</h3><button type="button" className="diary-group-primary" disabled={busy || loading} onClick={() => beginEdit()}>Создать группу</button>
-      <div className="diary-group-bulk-actions"><button type="button" disabled={busy} onClick={() => navigate('/diary?all=1', { replace: true })}>Все записи</button><button type="button" disabled={busy} onClick={() => navigate('/diary?group=unassigned', { replace: true })}>Без группы</button></div>
+    <section className="modal-panel diary-groups-panel" hidden={mode !== 'manage'}><h3>Группы</h3><button type="button" className="diary-group-primary" aria-label="Создать группу" disabled={busy || loading} onClick={() => beginEdit()}>Создать</button>
       {deleteId && <section className="diary-unsaved-confirm" role="alertdialog" aria-label="Подтверждение удаления группы"><p>Удалить группу «{byId.get(deleteId)?.title}»? Записи и фотографии сохранятся без группы.</p><button type="button" disabled={busy} onClick={() => void remove()}>Удалить группу</button><button type="button" disabled={busy} data-keep-group onClick={() => setDeleteId(null)}>Оставить группу</button></section>}
       {loading ? <p role="status">Загрузка групп…</p> : !groups.length && <p className="diary-groups-help">Групп пока нет. Создайте первую, затем добавьте в неё записи.</p>}
-      <p className="diary-groups-help">Меняйте порядок за ручку или кнопками ↑ и ↓.</p>
+      <p className="sr-only">Меняйте порядок перетаскиванием ручки или клавишами ↑ и ↓ на ней.</p>
       <Reorder.Group as="ul" axis="y" layoutScroll values={order} onReorder={ids => { setOrder(ids); orderRef.current = ids; }} className="diary-group-order-list"><AnimatePresence initial={false}>{displayedGroups.map((group, index) => <GroupOrderRow key={group.id} group={group} count={counts.get(group.id) ?? 0} index={index} total={displayedGroups.length} busy={busy} onEdit={() => beginEdit(group)} onEntries={() => beginEntries(group)} onDelete={() => setDeleteId(group.id)} onMove={direction => move(group.id, direction)} onDragStart={() => { dragging.current = true; }} onDragEnd={() => { dragging.current = false; void commitOrder(orderRef.current); }} />)}</AnimatePresence></Reorder.Group>
     </section>
     {mode === 'edit' && <form className="modal-panel diary-groups-panel" onSubmit={event => { event.preventDefault(); void save(); }}><h3>{original.current ? 'Изменить группу' : 'Создать группу'}</h3><label>Название группы<input className="diary-editor-input" aria-label="Название группы" value={title} maxLength={200} disabled={busy} onChange={event => { settled.current = false; setTitle(event.target.value); }} /></label><label className="diary-group-picker">Обложка<select aria-label="Обложка группы" disabled={busy} value={coverImageId ? 'custom' : coverId ?? ''} onChange={event => { settled.current = false; if (event.target.value === 'custom') return; setCoverImageId(null); setNewCover(undefined); setCoverId(event.target.value || null); }}>{coverImageId && <option value="custom">Своё изображение</option>}<option value="">Автоматически из последней записи</option>{coverId && !candidates.some(entry => entry.id === coverId) && <option value={coverId} disabled>Обложка недоступна — выберите другую</option>}{candidates.map(entry => <option key={entry.id} value={entry.id}>{entry.title}</option>)}</select></label>{!coverImageId && coverId && candidates.find(entry => entry.id === coverId) && <div className="diary-group-cover-preview"><DiaryImage imageId={candidates.find(entry => entry.id === coverId)?.imageIds[0]} thumbnail alt="Обложка группы" /></div>}<div className="diary-group-cover-upload"><label>Загрузить свою обложку<input type="file" accept="image/*" aria-label="Загрузить обложку группы" disabled={busy} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void uploadCover(file); }} /></label>{coverImageId && <><div className="diary-group-cover-preview">{newCover ? <MediaAssetImage asset={newCover} thumbnail alt="Обложка группы" /> : <DiaryImage imageId={coverImageId} thumbnail alt="Обложка группы" />}</div><button type="button" className="diary-group-link" disabled={busy} onClick={() => { settled.current = false; setCoverImageId(null); setNewCover(undefined); }}>Убрать свою обложку</button></>}<p className="diary-groups-help">Загрузите изображение или выберите фото из записей группы.</p></div><button className="diary-group-primary" type="submit" disabled={busy}>{busy ? 'Сохранение…' : 'Сохранить группу'}</button></form>}

@@ -17,6 +17,9 @@ export const animation = {
 } as const;
 
 export interface CircleOrigin { x: number; y: number; radius: number }
+export function symbolEntranceDelay(index: number, sectionIndex = 0) {
+  return 0.1 + sectionIndex * 0.12 + Math.min(index, 60) * animation.cardStagger;
+}
 export function circleOrigin(rect: Pick<DOMRect, 'left' | 'top' | 'width' | 'height'>): CircleOrigin {
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, radius: Math.max(rect.width, rect.height) / 2 };
 }

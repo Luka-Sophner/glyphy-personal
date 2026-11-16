@@ -14,7 +14,7 @@ const slots = [
 export function BottomNavigation() {
   const navigate = useNavigate(), current = useLocation();
   const { displayedLocation: location, reduced } = useNavigationMotion();
-  const path = location.pathname.startsWith('/glyphs/') ? '/glyphs' : location.pathname.startsWith('/cards/') ? location.state?.backgroundPath ?? '/' : location.pathname;
+  const path = location.pathname.startsWith('/glyphs/') ? location.state?.backgroundPath ?? '/glyphs' : location.pathname.startsWith('/cards/') ? location.state?.backgroundPath ?? '/' : location.pathname;
   const active = path === '/dictionary' || path.startsWith('/category/') ? 'dictionary'
     : path === '/glyphs' ? 'glyphs' : path === '/diary' ? 'diary' : path === '/settings' ? 'settings' : null;
   const settings = active === 'settings';

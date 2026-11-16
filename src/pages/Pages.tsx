@@ -10,15 +10,18 @@ import { useNavigationMotion } from '../app/NavigationMotion';
 import { normalizeSearch } from '../features/symbols/search';
 import { SearchResults } from '../components/SearchResults';
 import { Icon } from '../components/Icon';
+import { useGlyphs } from '../features/glyphs/GlyphContext';
 export function HomePage() {
   const { symbols, query, searchIndex, loading, databaseError } = useSymbols();
   const deferredQuery = useDeferredValue(query), searching = !!normalizeSearch(query);
   const results = useMemo(() => searchIndex.search(deferredQuery), [searchIndex, deferredQuery]);
+  const { search: searchGlyphs, loading: glyphsLoading } = useGlyphs();
+  const glyphResults = useMemo(() => normalizeSearch(deferredQuery) ? searchGlyphs(deferredQuery) : [], [searchGlyphs, deferredQuery]);
   const { reduced, homeVisited } = useNavigationMotion();
   const [entrance] = useState(() => !homeVisited.current);
   useEffect(() => { homeVisited.current = true; }, [homeVisited]);
   if (searching) return <section className="home-page search-page"><h1 className="sr-only">Результаты поиска</h1>
-    {loading ? <p role="status">Загрузка словаря…</p> : <SearchResults results={results} pending={query !== deferredQuery} />}</section>;
+    {loading || glyphsLoading ? <p role="status">Загрузка словаря…</p> : <SearchResults results={results} glyphs={glyphResults} pending={query !== deferredQuery} />}</section>;
   return <div className="home-page" data-home-entrance={entrance}><h1 className="sr-only">Главная</h1><AnimatePresence initial={!reduced && entrance}>{categories.map((category, index) => {
     const items = symbols.filter(symbol => symbol.meanings.some(group => group.category === category.id));
     return !items.length ? null : <motion.section layout className="home-section" key={category.id} aria-labelledby={`section-${category.id}`}

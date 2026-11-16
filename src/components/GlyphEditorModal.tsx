@@ -96,7 +96,7 @@ function Editor({ glyphId }: { glyphId: string }) {
       await glyphRepository.save(input, existing?.id, { expectedUpdatedAt: existing?.updatedAt });
       saved.current = true; guard.current = false; setGlyphQuery(''); setNotice(existing ? 'Глиф обновлён' : 'Глиф сохранён');
       if (blocker.state === 'blocked') blocker.reset();
-      navigate('/glyphs', { replace: true });
+      navigate(location.state?.backgroundPath === '/' ? '/' : '/glyphs', { replace: true });
     } catch (cause) { writeInFlight.current = false; setBusy(false); setError(cause instanceof Error ? cause.message : 'Не удалось сохранить глиф. Попробуйте снова.'); }
   };
   const missing = glyphId !== 'new' && !existing;

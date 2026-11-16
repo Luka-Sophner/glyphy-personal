@@ -35,8 +35,17 @@ test('no groups keep the full feed; groups form a horizontal shelf above all pos
   await page.setViewportSize({ width: 393, height: 852 }); await diary(page); await expect(page.locator('.diary-card')).toHaveCount(2); await expect(page.locator('.diary-group-strip')).toHaveCount(0);
   await createGroup(page, 'Правила'); await expect(page.locator('.diary-group-card')).toHaveCount(1); await expect(page.locator('.diary-card')).toHaveCount(2); await expect(page.locator('.diary-card-title').first()).toHaveText('Последняя запись');
   await createGroup(page, 'Хокку'); await createGroup(page, 'Наблюдения'); expect(await page.locator('.diary-group-strip').evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
+  const manageBounds = await page.locator('.diary-groups-open').boundingBox(), noticeBounds = await page.locator('.demo-notice').boundingBox();
+  expect(manageBounds!.y).toBeGreaterThanOrEqual(noticeBounds!.y + noticeBounds!.height);
+  await expect(page.locator('.diary-group-shelf')).toHaveAttribute('data-has-more', 'true');
+  await expect.poll(() => page.locator('.diary-group-shelf').evaluate(el => getComputedStyle(el, '::after').opacity)).toBe('1');
+  expect(await page.locator('.diary-group-shelf').evaluate(el => {
+    const r = el.getBoundingClientRect(), style = getComputedStyle(el, '::after');
+    return r.right - parseFloat(style.right) <= document.getElementById('content')!.getBoundingClientRect().right;
+  })).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); await page.screenshot({ path: testInfo.outputPath('diary-groups-393x852.png') });
   await page.getByRole('button', { name: 'Открыть группу: Правила', exact: true }).click(); await page.locator('.nav-add').click();
+  await expect(page.locator('.diary-group-view')).toHaveCount(0);
   const group = (await read(page)).groups.find(group => group.title === 'Правила')!; await expect(page.getByRole('combobox', { name: 'Группа записи', exact: true })).toHaveValue(group.id);
   await page.getByRole('textbox', { name: 'Название', exact: true }).fill('Статья в правилах'); await page.locator('input[data-diary-upload=gallery]').setInputFiles(payload()); await expect(page.getByRole('button', { name: 'Сохранить', exact: true })).toBeEnabled(); await page.getByRole('button', { name: 'Сохранить', exact: true }).click(); await page.getByRole('button', { name: 'Закрыть запись', exact: true }).click();
   await expect(page.locator('.diary-card-title')).toHaveText(['Статья в правилах']); expect((await read(page)).entries.find(entry => entry.title === 'Статья в правилах')!.groupId).toBe(group.id);
@@ -50,11 +59,23 @@ test('bulk assignment, entry picker and deleting a group retain posts and every 
   await manage(page); await page.locator('dialog').getByRole('button', { name: 'Удалить группу: Хокку', exact: true }).click(); await expect(page.getByRole('alertdialog', { name: 'Подтверждение удаления группы', exact: true })).toContainText('Записи и фотографии сохранятся');
   await page.getByRole('button', { name: 'Удалить группу', exact: true }).click(); await expect(page.locator('dialog .diary-group-order-row')).toHaveCount(1);
   const after = await read(page); expect(after.entries).toHaveLength(2); expect(after.mediaIds).toEqual(before.mediaIds); const moved = after.entries.find(entry => entry.title === 'Первая запись')!; expect(moved.groupId).toBeNull(); expect(moved.imageIds).toEqual(before.entries.find(entry => entry.id === moved.id)!.imageIds);
-  await page.locator('dialog').getByRole('button', { name: 'Без группы', exact: true }).click(); await expect(page.locator('.diary-card-title')).toHaveText(['Первая запись']);
+  await page.getByRole('button', { name: 'Закрыть управление группами', exact: true }).click();
+  await page.goto('/?demo=1#/diary?group=unassigned'); await expect(page.locator('.diary-card-title')).toHaveText(['Первая запись']);
 });
-test('order buttons, rename and explicit cover persist after reopening', async ({ page }) => {
+test('keyboard reordering, rename and explicit cover persist after reopening', async ({ page }, testInfo) => {
   await diary(page); await createGroup(page, 'Правила'); await createGroup(page, 'Хокку'); await createGroup(page, 'Наблюдения'); await assignBoth(page, 'Правила');
-  await page.getByRole('button', { name: 'Поднять группу: Наблюдения', exact: true }).click(); await expect(page.getByRole('button', { name: 'Поднять группу: Наблюдения', exact: true })).toBeEnabled(); await page.getByRole('button', { name: 'Поднять группу: Наблюдения', exact: true }).click(); await expect(page.getByRole('button', { name: 'Поднять группу: Наблюдения', exact: true })).toBeDisabled();
+  await expect(page.locator('.diary-group-order-row').first()).toHaveCSS('opacity', '1');
+  await expect(page.locator('.diary-group-order-row').first()).toBeInViewport();
+  await expect(page.locator('dialog')).toHaveCSS('transform', 'none');
+  for (const row of await page.locator('.diary-group-order-row').all()) await expect(row).toHaveCSS('transform', 'none');
+  await page.screenshot({ path: testInfo.outputPath('groups-manager.png') });
+  const handle = page.getByRole('button', { name: 'Перетащить группу: Наблюдения', exact: true });
+  await handle.press('ArrowUp');
+  await expect.poll(async () => (await read(page)).groups.map(group => group.title)).toEqual(['Правила', 'Наблюдения', 'Хокку']);
+  await expect(handle).toBeEnabled(); await handle.press('ArrowUp');
+  await expect.poll(async () => (await read(page)).groups.map(group => group.title)).toEqual(['Наблюдения', 'Правила', 'Хокку']);
+  await expect(handle).toBeEnabled(); await handle.press('ArrowUp');
+  await expect.poll(async () => (await read(page)).groups.map(group => group.title)).toEqual(['Наблюдения', 'Правила', 'Хокку']);
   await page.getByRole('button', { name: 'Редактировать группу: Правила', exact: true }).click(); await page.getByRole('textbox', { name: 'Название группы', exact: true }).fill('Мои правила');
   const first = (await read(page)).entries.find(entry => entry.title === 'Первая запись')!; await page.getByRole('combobox', { name: 'Обложка группы', exact: true }).selectOption(first.id); await page.getByRole('button', { name: 'Сохранить группу', exact: true }).click(); await page.getByRole('button', { name: 'Закрыть управление группами', exact: true }).click(); await page.reload();
   await expect(page.locator('.diary-group-title')).toHaveText(['Наблюдения', 'Мои правила', 'Хокку']); await expect.poll(() => page.getByRole('button', { name: 'Открыть группу: Мои правила', exact: true }).locator('img').evaluate((image: HTMLImageElement) => image.naturalHeight > image.naturalWidth)).toBe(true);
@@ -68,7 +89,7 @@ test('drag handle reorders groups and saves the final order once released', asyn
 
 test('custom cover upload survives reload, can be replaced and removed', async ({page}) => {
   await diary(page); await createGroup(page,'Custom'); await manage(page);
-  await page.locator('.diary-group-order-row').filter({hasText:'Custom'}).locator('button').nth(4).click();
+  await page.locator('.diary-group-order-row').filter({hasText:'Custom'}).getByRole('button', { name: 'Редактировать группу: Custom', exact: true }).click();
   await page.getByLabel('Загрузить обложку группы',{exact:true}).setInputFiles(payload(true));
   await expect(page.locator('.diary-group-cover-preview img')).toBeVisible();
   await page.locator('form button[type=submit]').click();
@@ -77,11 +98,11 @@ test('custom cover upload survives reload, can be replaced and removed', async (
   await expect.poll(async()=> (await read(page)).groups[0]?.coverImageId).toBeTruthy();
   await expect.poll(()=>page.locator('.diary-group-cover img').evaluate((img:HTMLImageElement)=>img.naturalWidth>img.naturalHeight)).toBe(true);
   const before=await read(page), firstCover=before.groups[0].coverImageId;
-  await manage(page); await page.locator('.diary-group-order-row').locator('button').nth(4).click();
+  await manage(page); await page.locator('.diary-group-order-row').getByRole('button', { name: 'Редактировать группу: Custom', exact: true }).click();
   await page.getByLabel('Загрузить обложку группы',{exact:true}).setInputFiles(payload());
   await expect(page.locator('form button[type=submit]')).toBeEnabled(); await page.locator('form button[type=submit]').click();
   await expect.poll(async()=> (await read(page)).mediaIds.includes(firstCover)).toBe(false);
-  await page.locator('.diary-group-order-row').locator('button').nth(4).click();
+  await page.locator('.diary-group-order-row').getByRole('button', { name: 'Редактировать группу: Custom', exact: true }).click();
   await page.getByRole('button',{name:'Убрать свою обложку',exact:true}).click();
   await page.locator('form button[type=submit]').click(); await page.locator('.modal-toolbar button').click();
   expect((await read(page)).mediaIds).toHaveLength(before.mediaIds.length-1);

@@ -24,18 +24,20 @@ $ahead = [int](Run-Git -Arguments @('rev-list','--count','HEAD..origin/main'))
 if ($ahead -eq 0) { return }
 Invoke-GlyphyGit -Repository $target -Arguments @('merge-base','--is-ancestor','HEAD','origin/main')
 if ($LASTEXITCODE -ne 0) { throw 'Local and remote history diverged. No files overwritten. Resolve with assistance; never force push.' }
-if (@(Run-Git -Arguments @('status','--porcelain')).Count -gt 0) { throw 'Remote changes found, but the GitHub copy has local edits. No files overwritten. Ask to reconcile both versions before sending.' }
 $manifest = Join-Path $target '.glyphy-snapshot.json'
 $allowed = Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json
 $changed = @(Run-Git -Arguments @('diff','--name-only','HEAD..origin/main'))
 foreach ($file in $changed) {
-    if ($file -eq '.glyphy-snapshot.json' -or $file -notin $allowed) { throw "Remote file needs review before synchronization: $file. No files overwritten." }
+    if (@(Run-Git -Arguments @('status','--porcelain','--',$file)).Count -gt 0) { throw "Local and remote edits overlap in the GitHub copy: $file" }
+    if ($file -eq '.glyphy-snapshot.json' -or ($file -notin $allowed -and $file -cne 'README.md')) { throw "Remote file needs review before synchronization: $file. No files overwritten." }
     $source = [IO.Path]::GetFullPath((Join-Path $root $file))
     if (-not $source.StartsWith($root + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe remote path.' }
     if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Local file missing or deleted: $file. No files overwritten." }
-    $old = Run-Git -Arguments @('rev-parse',('HEAD:' + $file))
     $remote = Run-Git -Arguments @('rev-parse',('origin/main:' + $file))
     $local = Run-Git -Arguments @('hash-object',('--path=' + $file),'--',$source)
+    if ($local -eq $remote) { continue }
+    if (-not (Run-Git -Arguments @('ls-tree','--name-only','HEAD','--',$file))) { throw "New remote file differs from local source: $file" }
+    $old = Run-Git -Arguments @('rev-parse',('HEAD:' + $file))
     if ($local -ne $old -and $local -ne $remote) { throw "Both source and GitHub changed: $file. No files overwritten. Ask to merge these edits." }
 }
 Run-Git -Arguments @('merge','--ff-only','origin/main') | Out-Host

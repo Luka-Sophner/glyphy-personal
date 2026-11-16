@@ -37,7 +37,7 @@ function Screens() {
   const glyph = getGlyphRoute(location.pathname), diary = getDiaryRoute(location.pathname), cardModal = location.pathname.startsWith('/cards/');
   const diaryGroups = isDiaryGroupsRoute(location.pathname);
   const diaryAdd = location.pathname === '/cards/new/edit' && location.state?.backgroundPath === '/diary';
-  const backgroundPath = diaryGroups || diary || diaryAdd ? '/diary' : glyph ? '/glyphs' : cardModal ? location.state?.backgroundPath ?? '/' : location.pathname;
+  const backgroundPath = diaryGroups || diary || diaryAdd ? '/diary' : glyph ? location.state?.backgroundPath ?? '/glyphs' : cardModal ? location.state?.backgroundPath ?? '/' : location.pathname;
   return <AppShell backgroundPath={backgroundPath}>
     <Routes location={{ ...location, pathname: backgroundPath }}>
       <Route path="/" element={<HomePage />} /><Route path="/menu" element={<HomePage />} />

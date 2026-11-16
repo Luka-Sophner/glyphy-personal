@@ -19,7 +19,7 @@ export function SearchBar({ scope = 'dictionary', value, onChange, label }: { sc
   };
   return <form ref={form} className="search-bar" role="search" onPointerDown={rock} onSubmit={event => { event.preventDefault(); input.current?.blur(); }}>
     <span className="search-icon"><Icon name="search" /></span>
-    <motion.input ref={input} type="search" aria-label={label ?? (diaryScope ? 'Поиск по дневнику' : scope === 'glyphs' ? 'Поиск глифов' : 'Поиск по словарю')} value={query} onChange={event => setQuery(event.target.value)}
+    <motion.input ref={input} type="search" aria-label={label ?? (diaryScope ? 'Поиск по дневнику' : scope === 'glyphs' ? 'Поиск глифов' : 'Поиск по словарю')} value={query} onChange={event => { setQuery(event.target.value); rock(); }}
       onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); setQuery(''); } }}
       autoComplete="off" autoCapitalize="none" spellCheck={false} enterKeyHint="search" inputMode="search"
       whileFocus={reduced ? undefined : { scale: 1.01 }} transition={animation.gentleSpring} />

@@ -29,7 +29,7 @@ try {
     # Explicit source allowlist. No copied databases, photos, archives or Android build output.
     $files = @('package.json','package-lock.json','index.html','tsconfig.json','vite.config.ts',
         'vitest.config.ts','playwright.config.ts','capacitor.config.json','.gitignore',
-        'android-version.json','GITHUB_ANDROID_GUIDE.md','prepare-github.bat',
+        'android-version.json','README.md','GITHUB_ANDROID_GUIDE.md','prepare-github.bat',
         'send-github-update.bat','setup-signing.bat','build-android.bat','INSTALL_ANDROID.md','V1.1_REPORT.md')
     foreach ($dir in @('src','scripts','tests')) {
         Get-ChildItem -LiteralPath (Join-Path $root $dir) -Recurse -File | Where-Object {
@@ -40,6 +40,9 @@ try {
     # Only reviewed application illustrations and icons; arbitrary SVG/images are excluded.
     $files += @('src/assets/glyphs/glyph-placeholder.svg','src/assets/glyphs/house-demo.svg',
         'src/assets/glyphs/water-demo.svg','src/assets/icons/glyphy-mark.svg',
+        'src/assets/icons/note.svg','src/assets/icons/groups-close.svg',
+        'src/assets/icons/groups-edit.svg','src/assets/icons/groups-action-bg.svg',
+        'src/assets/icons/groups-trash.svg','src/assets/icons/groups-drag.svg',
         'src/assets/fonts/UniSansHeavy.otf','tests/fixtures/sample-photo.jpg',
         'public/favicon.svg','public/manifest.webmanifest','public/icons/app.svg',
         'public/icons/icon-192.png','public/icons/icon-512.png','public/icons/maskable-512.png',

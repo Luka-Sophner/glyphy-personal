@@ -6,7 +6,15 @@ import ts from 'typescript';
 // Exercise the actual pure TypeScript implementation without missing test tools.
 const source = await readFile(new URL('../src/lib/animations.ts', import.meta.url), 'utf8');
 const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
-const { circleOrigin, coveringScale } = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`);
+const { circleOrigin, coveringScale, symbolEntranceDelay } = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`);
+
+test('the first 60 symbol cards enter individually before the remaining block', () => {
+  for (let index = 1; index < 60; index++) assert.ok(symbolEntranceDelay(index) > symbolEntranceDelay(index - 1));
+  assert.ok(symbolEntranceDelay(60) > symbolEntranceDelay(59));
+  assert.equal(symbolEntranceDelay(61), symbolEntranceDelay(60));
+  assert.equal(symbolEntranceDelay(1000), symbolEntranceDelay(60));
+  assert.equal(symbolEntranceDelay(60, 2), symbolEntranceDelay(1000, 2));
+});
 
 test('circle starts at the measured icon center, including scrolled coordinates', () => {
   assert.deepEqual(circleOrigin({ left: 23, top: 433, width: 50, height: 50 }), { x: 48, y: 458, radius: 25 });

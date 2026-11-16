@@ -5,7 +5,6 @@
   position: absolute; bottom: 0; left: 0; right: 0;
   text-align: center; background: var(--color-panel);
 }
-.app--settings .bottom-navigation .nav-center { background: var(--color-panel); color: var(--color-accent); }
 .content-fade { opacity: 0; transition: opacity 180ms ease; }
 .app[data-has-more='true'] .content-fade { opacity: 1; }
 .content-fade-top {
@@ -27,6 +26,89 @@
 .glyph-editor-panel > .editor-pencil { position: relative; top: calc(-28 * var(--u)); }
 .glyph-picker-category { margin-top: 20px; font-size: 12px; line-height: 1.4; color: var(--color-ink); opacity: .75; }
 .glyph-picker-category + .glyph-picker-results { margin-top: 8px; }
+
+/* Diary group management follows the existing 1038-unit modal design. */
+.symbol-grid > .glyph-card--compact {
+  height: calc(228 * var(--u)); padding: calc(22 * var(--u)) calc(24 * var(--u)) calc(20 * var(--u));
+}
+.glyph-card--compact > .glyph-grid {
+  flex: 0 0 auto; gap: calc(3 * var(--u)); background: var(--color-image-background);
+  border-radius: calc(13 * var(--u));
+}
+.glyph-card--compact .glyph-cell { border-radius: calc(3 * var(--u)); }
+.glyph-card--compact .glyph-card-title {
+  margin-top: calc(16 * var(--u)); font-size: calc(34.755 * var(--u));
+  line-height: calc(42 * var(--u)); letter-spacing: -.045em;
+}
+.diary-groups-open {
+  position: static; display: block; width: fit-content; max-width: 100%;
+  min-height: 36px; margin: calc(-75 * var(--u)) auto calc(75 * var(--u));
+  padding: calc(28 * var(--u)) calc(62 * var(--u));
+  border-radius: calc(17 * var(--u)); background: var(--color-accent);
+  color: var(--color-background); font-family: var(--font-display);
+  font-size: max(12px, calc(34 * var(--u))); font-weight: 900; text-transform: uppercase;
+}
+.app-scroll-content > :is(.demo-notice, .database-error) ~ .diary-page .diary-groups-open { margin-top: 0; }
+.diary-groups-modal .diary-groups-close {
+  padding: 0; background: url('../assets/icons/groups-close.svg') center / contain no-repeat;
+}
+.diary-groups-modal--manage .diary-groups-panel {
+  padding: calc(116 * var(--u)) calc(56 * var(--u));
+}
+.diary-groups-modal--manage .diary-groups-panel h3 {
+  font-size: calc(72.742 * var(--u)); line-height: 1.2; margin: 0 0 calc(45 * var(--u));
+}
+.diary-groups-modal--manage .diary-group-primary {
+  height: calc(130 * var(--u)); margin: 0; border-radius: calc(17 * var(--u));
+  font-size: max(16px, calc(45.645 * var(--u)));
+}
+.diary-group-order-list { gap: calc(40 * var(--u)); margin-top: calc(40 * var(--u)); }
+.diary-group-order-row {
+  display: grid; grid-template-columns: max(44px, calc(88 * var(--u))) minmax(0, 1fr);
+  grid-template-rows: auto auto; column-gap: calc(100 * var(--u)); row-gap: calc(42 * var(--u));
+  align-items: center; padding: calc(51 * var(--u)) calc(54 * var(--u)) calc(28 * var(--u));
+  border-radius: calc(17 * var(--u));
+}
+.diary-group-drag {
+  grid-row: 1 / 3; width: max(44px, calc(88 * var(--u))); min-width: 0;
+  height: max(52px, calc(130 * var(--u))); border-radius: calc(18 * var(--u));
+  display: grid; place-items: center; padding: 0;
+}
+.diary-group-drag > span {
+  width: calc(41 * var(--u)); height: calc(72 * var(--u));
+  background: url('../assets/icons/groups-drag.svg') center / contain no-repeat;
+}
+.diary-group-order-heading { display: block; }
+.diary-group-order-heading strong { font-size: max(16px, calc(53.85 * var(--u))); line-height: 1.2; }
+.diary-group-order-heading small {
+  margin-top: 0; font-family: var(--font-display); font-size: max(12px, calc(34.755 * var(--u)));
+  font-weight: 900; text-transform: uppercase;
+}
+.diary-group-row-actions {
+  grid-column: 2; display: flex; flex-wrap: nowrap; gap: calc(30 * var(--u)); margin: 0;
+}
+.diary-group-row-actions button {
+  flex: 0 0 auto; width: max(36px, calc(100 * var(--u))); height: max(36px, calc(100 * var(--u)));
+  min-width: 0; min-height: 0; padding: 0; border-radius: 50%; display: grid; place-items: center;
+  background: url('../assets/icons/groups-action-bg.svg') center / contain no-repeat;
+}
+.diary-group-row-actions .diary-group-edit-action {
+  background-image: url('../assets/icons/groups-edit.svg');
+}
+.diary-group-entries-action span {
+  width: 50%; height: 50%; background: var(--color-background);
+  mask: url('../assets/icons/note.svg') center / contain no-repeat;
+}
+.diary-group-delete-action span {
+  width: 46%; height: 50%;
+  background: url('../assets/icons/groups-trash.svg') center / contain no-repeat;
+}
+.diary-group-row-actions .diary-group-delete-action { margin-left: calc(44 * var(--u)); }
+@media (max-width: 359px) {
+  .diary-groups-open { min-height: 36px; font-size: 12px; }
+  .diary-group-order-row { column-gap: 12px; padding-inline: 14px; }
+  .diary-group-row-actions .diary-group-delete-action { margin-left: 0; }
+}
 
 @media (max-width: 767px) {
   /* A single fixed shell; only main scrolls. CSS/native insets support older WebViews. */
@@ -57,6 +139,8 @@
   .app[data-keyboard] .bottom-navigation { opacity: 0; pointer-events: none; }
   .app[data-keyboard] .bottom-navigation button { pointer-events: none; }
   .app[data-keyboard] .app-scroll-content { padding-bottom: 24px; }
+  .diary-group-strip { width: 100%; margin-right: 0; padding-right: 0; }
+  .diary-group-shelf::after { right: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .content-fade, .content-fade-top, .diary-group-shelf::before, .diary-group-shelf::after, .bottom-navigation { transition: none; }

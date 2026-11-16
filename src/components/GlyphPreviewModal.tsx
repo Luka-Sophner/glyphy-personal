@@ -19,13 +19,14 @@ export function GlyphPreviewModal({ glyphId, symbolId }: { glyphId: string; symb
   const [confirmDelete, setConfirmDelete] = useState(false), [deleting, setDeleting] = useState(false), [deleteError, setDeleteError] = useState('');
   const found = glyphs.find(glyph => glyph.id === glyphId); if (found) lastKnown.current = found;
   const glyph = found ?? (deleting ? lastKnown.current : undefined), parentPath = glyphPath(glyphId);
+  const backgroundPath = location.state?.backgroundPath === '/' ? '/' : '/glyphs';
   const close = () => {
     if (deleting) return;
     if (symbolId) {
       if (location.state?.nestedFrom === parentPath) navigate(-1);
-      else navigate(parentPath, { replace: true, state: { backgroundPath: '/glyphs' } });
+      else navigate(parentPath, { replace: true, state: { backgroundPath } });
     } else if (location.state?.fromGallery) navigate(-1);
-    else navigate('/glyphs', { replace: true });
+    else navigate(backgroundPath, { replace: true });
   };
   useLayoutEffect(() => {
     const element = dialog.current; if (!element) return;
@@ -41,15 +42,15 @@ export function GlyphPreviewModal({ glyphId, symbolId }: { glyphId: string; symb
   const openSymbol = (cell: GlyphCell, partId?: string) => {
     if (!cell.symbolId || !symbols.some(symbol => symbol.id === cell.symbolId)) return;
     views.set(glyphId, { scrollTop: dialog.current?.scrollTop ?? 0, position: cell.position, partId });
-    navigate(glyphSymbolPath(glyphId, cell.symbolId), { state: { ...location.state, backgroundPath: '/glyphs', nestedFrom: parentPath } });
+    navigate(glyphSymbolPath(glyphId, cell.symbolId), { state: { ...location.state, backgroundPath, nestedFrom: parentPath } });
   };
   const editSymbol = () => {
     if (!symbolId) return;
-    navigate(`/cards/${encodeURIComponent(symbolId)}/edit`, { replace: true, state: { ...location.state, backgroundPath: '/glyphs', returnTo: glyphSymbolPath(glyphId, symbolId) } });
+    navigate(`/cards/${encodeURIComponent(symbolId)}/edit`, { replace: true, state: { ...location.state, backgroundPath, returnTo: glyphSymbolPath(glyphId, symbolId) } });
   };
   const remove = async () => {
     if (deleting || !glyph) return; setDeleting(true); setDeleteError('');
-    try { await deleteGlyph(glyph.id); navigate('/glyphs', { replace: true }); }
+    try { await deleteGlyph(glyph.id); navigate(backgroundPath, { replace: true }); }
     catch (cause) { setDeleteError(cause instanceof Error ? cause.message : 'Не удалось удалить глиф.'); setDeleting(false); }
   };
   const unavailable = !symbolsLoading && glyph && [glyph.cells, ...(glyph.additionalGlyphs ?? []).map(part => part.cells)].some(cells => cells.some(cell => cell.symbolId && !symbols.some(symbol => symbol.id === cell.symbolId)));
@@ -57,7 +58,7 @@ export function GlyphPreviewModal({ glyphId, symbolId }: { glyphId: string; symb
     <motion.div className="glyph-preview-layer" data-return-scroll={views.get(glyphId)?.scrollTop ?? 0} hidden={!!symbolId} aria-hidden={!!symbolId || undefined} initial={false} animate={{ opacity: symbolId ? 0 : 1 }} transition={reduced ? { duration: 0 } : animation.fade}>
       <div className="modal-toolbar">{glyph && <>
         <button type="button" className="modal-action delete-action" aria-label="Удалить глиф" disabled={deleting} onClick={() => setConfirmDelete(value => !value)}><Icon name="trash" /></button>
-        <button type="button" className="modal-action" aria-label="Редактировать глиф" disabled={deleting} onClick={() => { views.set(glyphId, { scrollTop: dialog.current?.scrollTop ?? 0 }); navigate(`${parentPath}/edit`, { state: { ...location.state, backgroundPath: '/glyphs', glyphEditorFrom: parentPath } }); }}><Icon name="edit" /></button>
+        <button type="button" className="modal-action" aria-label="Редактировать глиф" disabled={deleting} onClick={() => { views.set(glyphId, { scrollTop: dialog.current?.scrollTop ?? 0 }); navigate(`${parentPath}/edit`, { state: { ...location.state, backgroundPath, glyphEditorFrom: parentPath } }); }}><Icon name="edit" /></button>
       </>}<button type="button" className="modal-action" aria-label="Закрыть глиф" disabled={deleting} onClick={close}><Icon name="close" /></button></div>
       <article className="modal-panel glyph-preview-panel">{!glyph ? <><h2 id="glyph-preview-title">{loading ? 'Загрузка глифа…' : 'Глиф не найден'}</h2>{error && <p role="alert">{error}</p>}</> : <>
         {confirmDelete && <div className="delete-confirm" role="group" aria-label="Подтверждение удаления глифа"><p>Удалить глиф?</p><button type="button" disabled={deleting} onClick={remove}>{deleting ? 'Удаление…' : 'Удалить'}</button><button type="button" disabled={deleting} onClick={() => setConfirmDelete(false)}>Отмена</button>{deleteError && <p role="alert">{deleteError}</p>}</div>}

@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="src/assets/icons/glyphy-mark.svg" alt="Glyphy mark" width="72" height="72">
+  <img src="public/icons/app.svg" alt="Glyphy app icon" width="72" height="72">
 
   <h1>Glyphy</h1>
 

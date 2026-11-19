@@ -46,7 +46,14 @@ try {
         'src/assets/fonts/UniSansHeavy.otf','tests/fixtures/sample-photo.jpg',
         'public/favicon.svg','public/manifest.webmanifest','public/icons/app.svg',
         'public/icons/icon-192.png','public/icons/icon-512.png','public/icons/maskable-512.png',
-        '.github/workflows/build-android.yml','.github/workflows/setup-android-signing.yml')
+        '.github/workflows/build-android.yml','.github/workflows/setup-android-signing.yml',
+        'scripts/android-icons/IconTimeline.java','scripts/android-icons/IconScheduler.java',
+        'scripts/android-icons/IconReceiver.java','scripts/android-icons/GlyphyApplication.java')
+    foreach ($frame in @(45,46,47,48)) {
+        $files += "public/icons/frame-$frame.png"
+        $files += "public/icons/frame-$frame-maskable.png"
+        if ($frame -ne 45) { $files += "public/icons/frame-$frame.svg" }
+    }
     $files = @($files | Sort-Object -Unique | Where-Object { Test-Path -LiteralPath (Join-Path $root $_) -PathType Leaf })
     $manifest = Join-Path $target '.glyphy-snapshot.json'
     $previousFiles = @()

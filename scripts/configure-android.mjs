@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { resolve, dirname } from 'node:path';
+import { configureLauncherIcons } from './configure-launcher-icons.mjs';
 
 export function configureAndroid() {
   const config = JSON.parse(fs.readFileSync('capacitor.config.json', 'utf8'));
@@ -24,6 +25,7 @@ export function configureAndroid() {
   manifest = manifest.replace(/android:allowBackup="[^"]*"/, 'android:allowBackup="false"');
   if (!manifest.includes('android:usesCleartextTraffic=')) manifest = manifest.replace('<application', '<application android:usesCleartextTraffic="false"');
   if (!manifest.includes('android:largeHeap=')) manifest = manifest.replace('<application', '<application android:largeHeap="true"');
+  manifest = configureLauncherIcons(manifest, config.appId);
   fs.writeFileSync(manifestFile, manifest);
   // Official Capacitor template owns file selection/camera and orientation handling.
   const mainFile = `android/app/src/main/java/${config.appId.replaceAll('.', '/')}/MainActivity.java`;

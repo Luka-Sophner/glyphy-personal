@@ -45,10 +45,16 @@ test('cloud preparation creates repeatable unsigned release with SDK 36, persist
     write(`public/icons/${name}`, fs.readFileSync(`public/icons/${name}`));
     write(`dist/icons/${name}`, fs.readFileSync(`public/icons/${name}`));
   }
+  for (const frame of [45, 48, 47, 46]) {
+    for (const suffix of ['', '-maskable']) {
+      const file = `public/icons/frame-${frame}${suffix}.png`;
+      write(file, fs.readFileSync(file));
+    }
+  }
   write('android/app/build.gradle', "android { defaultConfig { applicationId 'com.glyphy.personal'\nversionCode 1 } }");
   write('android/gradle.properties', 'android.useAndroidX=true\n');
   write('android/app/src/main/res/values/strings.xml', '<resources><string name="app_name">App</string></resources>');
-  write('android/app/src/main/AndroidManifest.xml', '<manifest><application android:allowBackup="true"/></manifest>');
+  write('android/app/src/main/AndroidManifest.xml', '<manifest><application android:allowBackup="true"><activity android:name=".MainActivity"/></application></manifest>');
   write('android/app/src/main/java/com/glyphy/personal/MainActivity.java', 'package com.glyphy.personal; public class MainActivity extends BridgeActivity {}');
   try {
     process.chdir(dir); process.env.ANDROID_HOME = path.join(dir, 'sdk');

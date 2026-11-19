@@ -53,6 +53,12 @@ test('native configuration is repeatable, retains application ID, adds icon, blo
   write('android/app/src/main/AndroidManifest.xml','<manifest><application android:allowBackup="true"><activity android:name=".MainActivity"/></application></manifest>');
   write('android/app/src/main/java/com/glyphy/personal/MainActivity.java','package com.glyphy.personal; import com.getcapacitor.BridgeActivity; public class MainActivity extends BridgeActivity {}');
   for(const file of ['maskable-512.png','icon-192.png']) write(`public/icons/${file}`,fs.readFileSync(`public/icons/${file}`));
+  for (const frame of [45, 48, 47, 46]) {
+    for (const suffix of ['', '-maskable']) {
+      const file = `public/icons/frame-${frame}${suffix}.png`;
+      write(file, fs.readFileSync(file));
+    }
+  }
   try {
     process.chdir(dir); configureAndroid(); configureAndroid();
     assert.equal((fs.readFileSync('android/gradle.properties','utf8').match(/android.overridePathCheck=/g)??[]).length,1);
@@ -60,5 +66,10 @@ test('native configuration is repeatable, retains application ID, adds icon, blo
     const manifest=fs.readFileSync('android/app/src/main/AndroidManifest.xml','utf8'); assert(manifest.includes('allowBackup="false"')); assert(manifest.includes('usesCleartextTraffic="false"')); assert(!manifest.includes('READ_EXTERNAL_STORAGE')); assert(!manifest.includes('screenOrientation'));
     assert(fs.existsSync('android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml'));
     assert(fs.readFileSync('android/app/src/main/java/com/glyphy/personal/MainActivity.java','utf8').includes('EdgeToEdge.enable'));
+    assert.equal((manifest.match(/<activity-alias /g) ?? []).length, 4);
+    assert.equal((manifest.match(/<receiver /g) ?? []).length, 1);
+    assert(manifest.includes('android:name=".GlyphyApplication"'));
+    assert(manifest.includes('android.permission.RECEIVE_BOOT_COMPLETED'));
+    assert(fs.existsSync('android/app/src/main/res/mipmap-anydpi-v26/glyphy_frame_48.xml'));
   } finally { process.chdir(project); }
 });

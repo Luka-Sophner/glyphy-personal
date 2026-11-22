@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, type R
 import { createSearchIndex } from './search';
 import { liveQuery } from 'dexie';
 import { initializeDatabase } from './demo';
-import { repository } from '../../db/repository';
+import { useProfileSession } from '../profiles/ProfileContext';
 import placeholder from '../../assets/glyphs/glyph-placeholder.svg';
 import type { GlyphySymbol, SymbolDraft, MediaAsset, SymbolCard } from '../../types';
 export { placeholder as defaultSymbolImage };
@@ -12,8 +12,9 @@ interface State {
   saveSymbol: (draft: SymbolDraft, media?: MediaAsset | null) => Promise<SymbolCard>; deleteSymbol: (id: string) => Promise<void>;
 }
 const Context = createContext<State | null>(null);
-type Snapshot = Awaited<ReturnType<typeof repository.snapshot>>;
+type Snapshot = Awaited<ReturnType<import('../../db/repository').SymbolRepository['snapshot']>>;
 export function SymbolProvider({ children }: { children: ReactNode }) {
+  const { repository } = useProfileSession();
   const [symbols, setSymbols] = useState<GlyphySymbol[]>([]), [loading, setLoading] = useState(true), [databaseError, setError] = useState('');
   const [announcement, setAnnouncement] = useState(''), [query, setQuery] = useState('');
   const applyRef = useRef<(snapshot: Snapshot) => void>(() => {});
@@ -38,7 +39,7 @@ export function SymbolProvider({ children }: { children: ReactNode }) {
     };
     const retirementUrls = new Map<ReturnType<typeof setTimeout>, { image: string; thumbnail: string }>();
     applyRef.current = apply;
-    void initializeDatabase().then(() => {
+    void initializeDatabase(repository).then(() => {
       if (!active) return;
       subscription = liveQuery(() => repository.snapshot()).subscribe({ next: apply, error: error => { if (active) { setError(String(error?.message ?? error)); setLoading(false); } } });
     }).catch(error => { if (active) { setError(String(error?.message ?? error)); setLoading(false); } });

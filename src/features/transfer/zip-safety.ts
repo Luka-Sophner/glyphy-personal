@@ -19,7 +19,7 @@ export interface ZipEntryInfo { name: string; size: number; compressedSize: numb
 const allowedPath = /^(manifest\.json|data\/|media\/|data\/(?:cards|modules)\.json|media\/[A-Za-z0-9_-]{1,180}(?:\.thumb)?\.(?:jpg|png|webp|gif|avif|bmp|svg))$/;
 const bad = () => { throw new Error('Некорректная или неподдерживаемая структура ZIP.'); };
 // Read the central directory BEFORE decompression. Reject ambiguous names and ZIP64.
-export function inspectZip(bytes: Uint8Array): ZipEntryInfo[] {
+export function inspectZip(bytes: Uint8Array, profileContainer = false): ZipEntryInfo[] {
   if (bytes.length < 22 || bytes.length > transferLimits.archiveBytes) throw new Error('Архив должен быть ZIP размером до 128 МБ.');
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   let end = -1;
@@ -41,7 +41,8 @@ export function inspectZip(bytes: Uint8Array): ZipEntryInfo[] {
     if (offset + 46 + nameLength + extraLength + commentLength > end || local + 30 > start || flags & ~0x808 || ![0, 8].includes(method)) return bad();
     let name: string;
     try { name = decoder.decode(bytes.subarray(offset + 46, offset + 46 + nameLength)); } catch { return bad(); }
-    if (!allowedPath.test(name) || names.has(name) || name.includes('..') || name.includes('\\')) return bad();
+    const profilePath = profileContainer && /^(profiles\/|profiles\/[A-Za-z0-9_-]{1,160}\.zip)$/.test(name);
+    if (!(allowedPath.test(name) || profilePath) || names.has(name) || name.includes('..') || name.includes('\\')) return bad();
     const unixMode = view.getUint32(offset + 38, true) >>> 16;
     if ((unixMode & 0xf000) === 0xa000 || view.getUint16(offset + 34, true)) return bad();
     if (view.getUint32(local, true) !== 0x04034b50 || view.getUint16(local + 6, true) !== flags || view.getUint16(local + 8, true) !== method) return bad();
@@ -50,12 +51,12 @@ export function inspectZip(bytes: Uint8Array): ZipEntryInfo[] {
     if (localEnd > start || ranges.some(range => local < range.end && localEnd > range.start)) return bad();
     ranges.push({ start: local, end: localEnd });
     if (decoder.decode(bytes.subarray(local + 30, local + 30 + localNameLength)) !== name) return bad();
-    const limit = name.endsWith('.json') ? transferLimits.jsonBytes : transferLimits.imageBytes;
+    const limit = name.endsWith('.json') ? transferLimits.jsonBytes : name.endsWith('.zip') ? transferLimits.archiveBytes : transferLimits.imageBytes;
     total += size;
     if (size > limit || total > transferLimits.expandedBytes || compressedSize > bytes.length || directory && size) throw new Error('Превышены допустимые размеры содержимого архива.');
     names.add(name); result.push({ name, size, compressedSize, crc: view.getUint32(offset + 16, true), directory });
     offset += 46 + nameLength + extraLength + commentLength;
   }
-  if (offset !== end || !names.has('manifest.json') || !names.has('data/cards.json')) return bad();
+  if (offset !== end || !names.has('manifest.json') || !profileContainer && !names.has('data/cards.json')) return bad();
   return result;
 }

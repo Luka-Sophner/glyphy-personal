@@ -13,8 +13,8 @@ test('settings keeps the gear on the right and the central button returns to the
     await expect(page.locator('.nav-settings')).toHaveAttribute('aria-label', 'Настройки');
     await expect(page.locator('.nav-settings svg')).toHaveAttribute('data-icon', 'settings');
     await expect(page.locator('.nav-center svg')).toHaveAttribute('data-icon', icon!);
-    await expect(page.locator('.nav-center')).toHaveCSS('background-color', 'rgb(255, 82, 126)');
-    await expect(page.locator('.nav-center')).toHaveCSS('color', 'rgb(255, 253, 250)');
+    await expect(page.locator('.nav-center')).toHaveCSS('background-color', 'rgb(255, 253, 250)');
+    await expect(page.locator('.nav-center')).toHaveCSS('color', 'rgb(140, 157, 173)');
     // Repeated settings clicks and reloads must retain the original return target.
     await page.locator('.nav-settings').click();
     await page.reload();
@@ -27,4 +27,21 @@ test('opening settings directly has a safe Home fallback', async ({ page }) => {
   await page.goto('/#/settings');
   await page.locator('.nav-center').click();
   await expect.poll(() => new URL(page.url()).hash).toBe('#/');
+});
+
+test('fast settings reversals and system-style Back settle on the correct menu colors', async ({ page }) => {
+  await page.goto('/?demo=1#/');
+  const center = page.locator('.nav-center');
+  for (let index = 0; index < 4; index++) {
+    await page.locator('.nav-settings').click();
+    await center.press('Enter');
+  }
+  await expect(center).toHaveCSS('background-color', 'rgb(255, 82, 126)');
+  await expect(center).toHaveCSS('color', 'rgb(255, 253, 250)');
+  await page.locator('.nav-settings').click();
+  await expect(center).toHaveCSS('background-color', 'rgb(255, 253, 250)');
+  await page.goBack();
+  await expect(page).toHaveURL(/#\/$/);
+  await expect(center).toHaveCSS('background-color', 'rgb(255, 82, 126)');
+  await expect(center).toHaveCSS('color', 'rgb(255, 253, 250)');
 });

@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { liveQuery } from 'dexie';
-import { diaryRepository } from '../../db/repositories';
-import { DiaryGroupRepository } from '../../db/DiaryGroupRepository';
+import { useProfileSession } from '../profiles/ProfileContext';
 import { sortDiaryGroups } from './groups';
 import { initializeDatabase } from '../symbols/demo';
 import { createDiarySearchIndex } from './presentation';
@@ -24,8 +23,8 @@ interface DiaryState {
   reorderGroups: (ids: string[]) => Promise<void>;
 }
 const Context = createContext<DiaryState | null>(null);
-const groupRepository = new DiaryGroupRepository(diaryRepository.db);
 export function DiaryProvider({ children }: { children: ReactNode }) {
+  const { repository, diaryRepository, groupRepository } = useProfileSession();
   const [entries, setEntries] = useState<DiaryEntry[]>([]), [media, setMedia] = useState<ReadonlyMap<string, MediaAsset>>(new Map());
   const [loading, setLoading] = useState(true), [error, setError] = useState(''), [query, setQuery] = useState('');
   const [notice, setNotice] = useState('');
@@ -34,7 +33,7 @@ export function DiaryProvider({ children }: { children: ReactNode }) {
   const rootView = useRef<{ groupId: string | null; search: string }>({ groupId: null, search: '' });
   useEffect(() => {
     let active = true, subscription: { unsubscribe: () => void } | undefined;
-    void initializeDatabase().then(() => {
+    void initializeDatabase(repository).then(() => {
       if (!active) return;
       subscription = liveQuery(() => diaryRepository.snapshot()).subscribe({ next: snapshot => {
         if (!active) return;

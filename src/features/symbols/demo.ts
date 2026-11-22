@@ -1,14 +1,16 @@
 import water from '../../assets/glyphs/water-demo.svg';
 import house from '../../assets/glyphs/house-demo.svg';
 import { prepareMedia } from './media';
-import { repository, demoMode } from '../../db/repository';
+import { repository as defaultRepository, demoMode, type SymbolRepository } from '../../db/repository';
 import type { StoredSymbolCard } from '../../db/database';
 
-let initialization: Promise<void> | undefined;
-export function initializeDatabase(): Promise<void> {
-  return initialization ??= (async () => {
+const initializations = new WeakMap<SymbolRepository, Promise<void>>();
+export function initializeDatabase(repository = defaultRepository): Promise<void> {
+  const previous = initializations.get(repository);
+  if (previous) return previous;
+  const initialization = (async () => {
     await repository.db.open();
-    if (!demoMode || await repository.db.meta.get('demo-initialized')) return;
+    if (!demoMode || repository.db.name !== 'glyphy-demo' || await repository.db.meta.get('demo-initialized')) return;
     const assets = await Promise.all([water, house].map(async url => prepareMedia(await (await fetch(url)).blob(), true)));
     const now = Date.now();
     const cards: StoredSymbolCard[] = [
@@ -21,4 +23,6 @@ export function initializeDatabase(): Promise<void> {
     ];
     await repository.seedDemo(cards, assets);
   })();
+  initializations.set(repository, initialization);
+  return initialization;
 }

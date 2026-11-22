@@ -4,6 +4,9 @@ import { listenNativeBack, minimizeNativeApp } from '../features/native/adapter.
 import { createHashRouter, RouterProvider, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { AppShell } from './AppShell';
 import { SettingsPage } from '../pages/SettingsPage';
+import { ProfilesPage } from '../pages/ProfilesPage';
+import { BackupsPage } from '../pages/BackupsPage';
+import { ProfileProvider } from '../features/profiles/ProfileContext';
 import { HomePage, DictionaryPage, CategoryPage, PlaceholderPage } from '../pages/Pages';
 import { GlyphGalleryPage } from '../pages/GlyphGalleryPage';
 import { DiaryPage } from '../pages/DiaryPage';
@@ -46,6 +49,8 @@ function Screens() {
       <Route path="/glyphs" element={<GlyphGalleryPage />} />
       <Route path="/diary" element={<DiaryPage />} />
       <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/settings/profiles" element={<ProfilesPage />} />
+      <Route path="/settings/backups" element={<BackupsPage />} />
       <Route path="*" element={<PlaceholderPage title="Страница не найдена" />} />
     </Routes>
     <AnimatePresence mode="wait" initial={false}>
@@ -61,5 +66,5 @@ function DiaryCreationRedirect() {
   const { rootView } = useDiary();
   return <Navigate to="/diary/new/edit" replace state={{ ...location.state, backgroundPath: '/diary', diaryEditorFrom: `/diary${rootView.search}`, diaryBackgroundSearch: rootView.search, diaryInitialGroupId: rootView.groupId }} />;
 }
-const router = createHashRouter([{ path: '*', element: <MotionConfig reducedMotion="user"><SymbolProvider><GlyphProvider><DiaryProvider><NavigationMotionProvider><Screens /></NavigationMotionProvider></DiaryProvider></GlyphProvider></SymbolProvider></MotionConfig> }]);
+const router = createHashRouter([{ path: '*', element: <MotionConfig reducedMotion="user"><ProfileProvider><SymbolProvider><GlyphProvider><DiaryProvider><NavigationMotionProvider><Screens /></NavigationMotionProvider></DiaryProvider></GlyphProvider></SymbolProvider></ProfileProvider></MotionConfig> }]);
 export function App() { return <RouterProvider router={router} />; }

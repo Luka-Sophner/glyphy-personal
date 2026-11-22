@@ -6,9 +6,15 @@ import { isHomeReturn } from '../lib/home-navigation';
 import { animation, circleOrigin, coveringScale, type CircleOrigin } from '../lib/animations';
 interface Source { categoryId: string; origin: CircleOrigin; scrollY: number }
 interface Layer { id: number; direction: 'forward' | 'reverse' | 'fade'; source?: Source }
+interface SettingsTransition { id: number; phase: 'exit' | 'expand' | 'dismiss'; expanded: boolean; leaving?: boolean }
 interface NavigationState {
   displayedLocation: Location; reduced: boolean; returning: boolean; homeVisited: MutableRefObject<boolean>; homeEntranceKey: number;
   openCategory: (id: string, circle: Element | null) => void; backToDictionary: () => void;
+  settingsTransition: SettingsTransition | null;
+  finishSettingsExit: (id: number) => void;
+  finishSettingsExpansion: (id: number) => void;
+  settingsSurfaceReady: boolean;
+  markSettingsSurfaceReady: () => void;
 }
 const Context = createContext<NavigationState | null>(null);
 const isCategory = (path: string) => path.startsWith('/category/');
@@ -17,6 +23,8 @@ export function NavigationMotionProvider({ children }: { children: ReactNode }) 
   const actual = useLocation(), navigate = useNavigate(), reduced = !!useReducedMotion();
   const [homeEntranceKey, setHomeEntranceKey] = useState(0);
   const [displayedLocation, setDisplayed] = useState(actual), [layer, setLayer] = useState<Layer | null>(null);
+  const [settingsTransition, setSettingsTransition] = useState<SettingsTransition | null>(null);
+  const [settingsSurfaceReady, setSettingsSurfaceReady] = useState(actual.pathname !== '/settings' || reduced);
   const actualRef = useRef(actual); actualRef.current = actual;
   const displayRef = useRef(displayedLocation); displayRef.current = displayedLocation;
   const source = useRef<Source | null>(null), homeVisited = useRef(false), sequence = useRef(0);
@@ -31,6 +39,16 @@ export function NavigationMotionProvider({ children }: { children: ReactNode }) 
     if (isHomeReturn(displayRef.current, actual)) { homeVisited.current = false; setHomeEntranceKey(value => value + 1); }
     const id = ++sequence.current, previous = displayRef.current.pathname, next = actual.pathname;
     setLayer(null);
+    setSettingsTransition(null);
+    if (next === '/settings') setSettingsSurfaceReady(reduced || previous === '/settings' && !settingsTransition?.leaving);
+    if (!reduced && previous.startsWith('/settings') && !next.startsWith('/settings') && !isModal(next)) {
+      setSettingsTransition({ id, phase: 'exit', expanded: false, leaving: true });
+      return;
+    }
+    if (!reduced && previous.startsWith('/settings') && next.startsWith('/settings') && previous !== next) {
+      setSettingsTransition({ id, phase: 'exit', expanded: next !== '/settings' });
+      return;
+    }
     if (!reduced && isCategory(next) && previous === '/dictionary') {
       const categoryId = next.split('/')[2];
       const circle = document.querySelector(`[data-category-id="${categoryId}"] .category-circle`);
@@ -55,7 +73,7 @@ export function NavigationMotionProvider({ children }: { children: ReactNode }) 
     scrollTarget.scrollTo({ top: displayedLocation.pathname === '/dictionary' ? source.current?.scrollY ?? 0 : 0, left: 0, behavior: 'instant' });
   }, [displayedLocation]);
   useEffect(() => {
-    const cancel = () => { ++sequence.current; setLayer(null); setDisplayed(actualRef.current); };
+    const cancel = () => { ++sequence.current; setLayer(null); setSettingsTransition(null); setSettingsSurfaceReady(true); setDisplayed(actualRef.current); };
     window.addEventListener('resize', cancel);
     const visibility = () => { if (document.hidden) cancel(); };
     document.addEventListener('visibilitychange', visibility);
@@ -63,12 +81,50 @@ export function NavigationMotionProvider({ children }: { children: ReactNode }) 
   }, []);
   const done = (id: number) => { if (sequence.current === id) setLayer(null); };
   const reveal = (id: number) => { if (sequence.current === id) setDisplayed(actualRef.current); };
+  const finishSettingsExpansion = (id: number) => {
+    if (sequence.current !== id) return;
+    setDisplayed(actualRef.current);
+    setSettingsTransition(null);
+    setSettingsSurfaceReady(true);
+  };
+  const finishSettingsExit = (id: number) => {
+    if (sequence.current !== id) return;
+    if (!actualRef.current.pathname.startsWith('/settings')) {
+      setSettingsTransition({ id, phase: 'dismiss', expanded: false, leaving: true });
+      return;
+    }
+    const wasExpanded = displayRef.current.pathname !== '/settings';
+    const expanded = actualRef.current.pathname !== '/settings';
+    if (wasExpanded === expanded) finishSettingsExpansion(id);
+    else {
+      // Measure the returning settings layout while its content is still hidden.
+      if (!expanded) setDisplayed(actualRef.current);
+      setSettingsTransition({ id, phase: 'expand', expanded });
+    }
+  };
+  useEffect(() => {
+    if (!settingsTransition) return;
+    // Backgrounded Android WebViews can suspend animation frames.
+    const timer = window.setTimeout(() => {
+      if (sequence.current === settingsTransition.id) {
+        setDisplayed(actualRef.current); setSettingsTransition(null); setSettingsSurfaceReady(true);
+      }
+    }, animation.circleDeadlineMs);
+    return () => window.clearTimeout(timer);
+  }, [settingsTransition?.id]);
+  useEffect(() => {
+    if (settingsSurfaceReady || settingsTransition || displayedLocation.pathname !== '/settings') return;
+    const timer = window.setTimeout(() => setSettingsSurfaceReady(true), animation.circleDeadlineMs);
+    return () => window.clearTimeout(timer);
+  }, [settingsSurfaceReady, settingsTransition, displayedLocation.key]);
   useEffect(() => {
     if (layer?.direction !== 'fade') return;
     const timer = window.setTimeout(() => done(layer.id), animation.modalExitDeadlineMs);
     return () => window.clearTimeout(timer);
   }, [layer?.id]);
-  return <Context.Provider value={{ displayedLocation, reduced, returning: layer?.direction === 'reverse', homeVisited, homeEntranceKey, openCategory, backToDictionary: () => navigate('/dictionary') }}>
+  return <Context.Provider value={{ displayedLocation, reduced, returning: layer?.direction === 'reverse', homeVisited, homeEntranceKey, openCategory, backToDictionary: () => navigate('/dictionary'),
+    settingsTransition, finishSettingsExit, finishSettingsExpansion, settingsSurfaceReady,
+    markSettingsSurfaceReady: () => setSettingsSurfaceReady(true) }}>
     <MotionConfig reducedMotion={reduced ? 'always' : 'never'}>{children}
     {layer?.direction === 'fade' && <motion.div key={layer.id} className="route-fade-layer" aria-hidden="true" data-route-transition="fallback"
       initial={{ opacity: 1 }} animate={{ opacity: 0 }} transition={animation.exit} onAnimationComplete={() => done(layer.id)} />}

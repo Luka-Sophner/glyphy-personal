@@ -4,6 +4,7 @@ import { Icon, type IconName } from './Icon';
 import { motion } from '../lib/motion';
 import { animation } from '../lib/animations';
 import { useNavigationMotion } from '../app/NavigationMotion';
+import { useProfiles } from '../features/profiles/ProfileContext';
 
 const slots = [
   { id: 'dictionary', label: 'Словарь', path: '/dictionary', x: 215, y: 150 },
@@ -12,13 +13,17 @@ const slots = [
 ] as const;
 
 export function BottomNavigation() {
+  const { busy } = useProfiles();
   const navigate = useNavigate(), current = useLocation();
   const { displayedLocation: location, reduced } = useNavigationMotion();
   const path = location.pathname.startsWith('/glyphs/') ? location.state?.backgroundPath ?? '/glyphs' : location.pathname.startsWith('/cards/') ? location.state?.backgroundPath ?? '/' : location.pathname;
   const active = path === '/dictionary' || path.startsWith('/category/') ? 'dictionary'
-    : path === '/glyphs' ? 'glyphs' : path === '/diary' ? 'diary' : path === '/settings' ? 'settings' : null;
+    : path === '/glyphs' ? 'glyphs' : path === '/diary' ? 'diary' : path.startsWith('/settings') ? 'settings' : null;
   const settings = active === 'settings';
-  const settingsFrom = location.state?.settingsFrom;
+  let settingsFrom = current.pathname.startsWith('/settings') ? current.state?.settingsFrom : location.state?.settingsFrom;
+  // Older history entries may contain nested settings origins.
+  for (let depth = 0; settingsFrom?.pathname?.startsWith('/settings') && depth < 10; depth++) settingsFrom = settingsFrom.state?.settingsFrom;
+  if (settingsFrom?.pathname?.startsWith('/settings')) settingsFrom = undefined;
   const centerIcon: IconName = settings ? settingsFrom?.icon ?? 'menu' : active ?? 'menu';
   const returnFromSettings = () => {
     setOpen(false);
@@ -28,7 +33,11 @@ export function BottomNavigation() {
   };
   const openSettings = () => {
     setOpen(false);
-    if (current.pathname !== '/settings') navigate('/settings', { state: { settingsFrom: {
+    if (current.pathname.startsWith('/settings')) {
+      if (current.pathname !== '/settings') navigate('/settings', { state: { settingsFrom } });
+      return;
+    }
+    navigate('/settings', { state: { settingsFrom: {
       pathname: current.pathname, search: current.search, state: current.state, icon: centerIcon,
     } } });
   };
@@ -44,6 +53,7 @@ export function BottomNavigation() {
   const go = (target: string) => { setOpen(false); navigate(target); };
   const toggle = () => { if (settings) { returnFromSettings(); return; } if (path === '/menu') navigate('/'); setOpen(value => !value); };
   return <motion.nav ref={nav} className={`bottom-navigation ${open ? 'is-open' : ''}`} aria-label="Основная навигация"
+    onClickCapture={event => { if (busy) { event.preventDefault(); event.stopPropagation(); } }}
     style={{ x: '-50%' }} initial={reduced ? false : { y: 160, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={reduced ? { duration: 0 } : animation.gentleSpring}>
     <div className="navigation-fan" id="navigation-fan" aria-hidden={!open} style={{ pointerEvents: open ? 'auto' : 'none' }}>
       {slots.map((slot, index) => {

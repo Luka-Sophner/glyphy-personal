@@ -1,6 +1,17 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
+import homeIcon from '../assets/icons/nav-home.svg';
+import dictionaryIcon from '../assets/icons/nav-dictionary.svg';
+import glyphsIcon from '../assets/icons/nav-glyphs.svg';
+import diaryIcon from '../assets/icons/nav-diary.svg';
 export type IconName = 'search' | 'plus' | 'menu' | 'dictionary' | 'glyphs' | 'diary' | 'settings' | 'close' | 'edit' | 'trash' | 'check' | 'home' | 'back';
 export function Icon({ name }: { name: IconName }) {
+  const maskId = useId();
+  const assets: Partial<Record<IconName, string>> = { home: homeIcon, menu: homeIcon, dictionary: dictionaryIcon, glyphs: glyphsIcon, diary: diaryIcon };
+  const asset = assets[name];
+  if (asset) return <svg data-icon={name} aria-hidden="true" viewBox="0 0 50 50" preserveAspectRatio="xMidYMid meet">
+    <defs><mask id={maskId} x="0" y="0" width="50" height="50" maskUnits="userSpaceOnUse" style={{ maskType: 'alpha' }}><image href={asset} width="50" height="50" preserveAspectRatio="xMidYMid meet"/></mask></defs>
+    <rect width="50" height="50" fill="currentColor" mask={`url(#${maskId})`}/>
+  </svg>;
   const paths: Record<Exclude<IconName, 'search'>, ReactNode> = {
     home: <path d="M4 34a20 20 0 0 1 40 0M24 14v20m-5-13h10m-10 7h10m-10 6h10" />,
     back: <path d="M40 24H8m14-14L8 24l14 14" />,

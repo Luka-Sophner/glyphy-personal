@@ -1,85 +1,68 @@
-import { nativeRuntime } from '../features/native/adapter.mjs';
-import { useEffect, useRef, useState } from 'react';
-import { useBlocker } from 'react-router-dom';
-import { repository } from '../db/repository';
-import { initializeDatabase } from '../features/symbols/demo';
-import { Modal } from '../components/Modal';
-import { Icon } from '../components/Icon';
-import { type PreparedArchive, type ImportMode } from '../features/transfer/archive';
-import { transferLimits } from '../features/transfer/zip-safety';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useProfiles } from '../features/profiles/ProfileContext';
+import { ProfileAvatar, ProfileDots, ProfileEditor, ProfileDialog } from '../features/profiles/ui';
+import { motion, AnimatePresence } from '../lib/motion';
+import { animation } from '../lib/animations';
+import { useNavigationMotion } from '../app/NavigationMotion';
 import { usePwa, installPwa, applyPwaUpdate } from '../features/pwa/client';
+import { nativeRuntime } from '../features/native/adapter.mjs';
+import mascot from '../assets/settings/sleepy-glyphy.svg';
+import pencil from '../assets/settings/profile-pencil.svg';
 
 export function SettingsPage() {
-  const input = useRef<HTMLInputElement>(null), running = useRef(false);
-  const [busy, setBusy] = useState(false), [message, setMessage] = useState(''), [error, setError] = useState('');
-  const [prepared, setPrepared] = useState<PreparedArchive | null>(null), [mode, setMode] = useState<ImportMode>('merge'), [confirmed, setConfirmed] = useState(false);
-  const pwa = usePwa();
-  const blocker = useBlocker(() => running.current);
-  useEffect(() => { if (blocker.state === 'blocked') blocker.reset(); }, [blocker]);
+  const { active, profiles, switchProfile, busy } = useProfiles();
+  const [edit, setEdit] = useState(false), [about, setAbout] = useState(false);
+  const navigate = useNavigate(), location = useLocation(), pwa = usePwa();
+  const { reduced, settingsSurfaceReady } = useNavigationMotion();
+  const revealed = reduced || settingsSurfaceReady;
+  const [introStep, setIntroStep] = useState(0);
+  const advanceIntro = (step: number) => setIntroStep(previous => Math.max(previous, step));
+  const dotsReady = revealed && (reduced || introStep >= 1);
+  const buttonsReady = dotsReady && (reduced || introStep >= 2);
   useEffect(() => {
-    const warn = (event: BeforeUnloadEvent) => { if (running.current) { event.preventDefault(); event.returnValue = ''; } };
-    window.addEventListener('beforeunload', warn); return () => window.removeEventListener('beforeunload', warn);
-  }, []);
-  const operation = async (work: () => Promise<void>) => {
-    if (running.current) return;
-    running.current = true; setBusy(true); setError('');
-    try { await work(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Операция не выполнена. Данные не изменены.'); setMessage(''); }
-    finally { running.current = false; setBusy(false); }
-  };
-  const backup = () => operation(async () => {
-    await initializeDatabase();
-    const { exportArchive } = await import('../features/transfer/archive');
-    const { downloadArchive } = await import('../features/transfer/browser');
-    const archive = await exportArchive(repository.db, setMessage);
-    await downloadArchive(archive.bytes, archive.filename); setMessage(nativeRuntime ? 'Архив подготовлен. Сохраните или отправьте его через меню Android.' : 'Архив подготовлен. Сохраните ZIP в надёжном месте.');
+    if (!revealed) setIntroStep(0);
+  }, [revealed]);
+  const go = (path: string) => navigate(path, { state: location.state });
+  const next = profiles[(profiles.findIndex(profile => profile.id === active.id) + 1) % profiles.length];
+  const enterLink = (index: number) => ({
+    initial: reduced ? false as const : { opacity: 0 },
+    animate: { opacity: buttonsReady ? 1 : 0 }, transition: { ...animation.row, duration: reduced ? 0 : .26, delay: reduced ? 0 : index * .065 },
   });
-  const load = (file?: File) => operation(async () => {
-    if (!file) return;
-    if (file.size > transferLimits.archiveBytes) throw new Error('Выберите ZIP размером до 128 МБ.');
-    setPrepared(null); setMode('merge'); setConfirmed(false); setMessage('Чтение ZIP…');
-    const { prepareImport } = await import('../features/transfer/archive');
-    const { validateDecodedAsset } = await import('../features/transfer/browser');
-    const archive = await prepareImport(new Uint8Array(await file.arrayBuffer()), validateDecodedAsset, setMessage);
-    setPrepared(archive); setMessage('Архив проверен. Выберите способ импорта.');
-  });
-  const restore = () => operation(async () => {
-    if (!prepared) return;
-    setMessage('Восстановление словаря…');
-    const { applyImport } = await import('../features/transfer/archive');
-    const result = await applyImport(repository.db, prepared, mode, confirmed);
-    setPrepared(null); setMessage(`Импорт завершён. Карточек добавлено: ${result.added}; уже существовали: ${result.skipped}. Глифов: ${result.glyphsAdded ?? 0}; записей дневника: ${result.entriesAdded ?? 0}; групп: ${result.groupsAdded ?? 0}.`);
-  });
-  const statuses = {
-    starting: 'Подготовка работы без сети…', ready: 'Готово к работе без сети', reload: 'Обновите страницу для работы без сети',
-    unsupported: 'Офлайн-режим недоступен в этом браузере', insecure: 'Для установки и офлайн-режима нужен HTTPS',
-    error: 'Не удалось подготовить офлайн-режим. Откройте приложение с подключением к сети.', dev: 'PWA проверяется в production-сборке: npm run build и npm run preview',
-  };
-  return <section className="settings-page"><h1 className="sr-only">Настройки</h1>
-    <div className="settings-actions" aria-busy={busy}>
-      <button type="button" className="settings-transfer-button" aria-label="Экспортировать словарь" disabled={busy} onClick={backup}>Экспорт базы</button>
-      <button type="button" className="settings-transfer-button" aria-label="Импортировать словарь" disabled={busy} onClick={() => input.current?.click()}>Импорт базы</button>
-      <input className="sr-only" ref={input} type="file" accept=".zip,application/zip,application/x-zip-compressed" aria-label="ZIP-архив словаря" disabled={busy} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void load(file); }} />
-      <div className="settings-feedback">
-        {message && <p role="status" aria-live="polite">{message}</p>}{error && <p role="alert">{error}</p>}
-        <p className="pwa-status" data-pwa-status={pwa.status}>{nativeRuntime ? 'Android: файлы приложения находятся на телефоне' : `${pwa.offline ? 'Без подключения · ' : ''}${statuses[pwa.status]}`}</p>
-        {pwa.installable && <button type="button" className="settings-inline-action" onClick={() => { void installPwa(); }}>Установить Glyphy</button>}
-        {pwa.update && <button type="button" className="settings-inline-action" disabled={busy} onClick={applyPwaUpdate}>Обновить приложение</button>}
-      </div>
-    </div>
-    {prepared && <Modal labelId="import-title" onClose={() => { if (!busy) { setPrepared(null); setMessage('Импорт отменён. Данные не изменены.'); } }} className="transfer-modal">
-      <div className="modal-toolbar"><button type="button" className="modal-action" aria-label="Закрыть импорт" disabled={busy} onClick={() => setPrepared(null)}><Icon name="close" /></button></div>
-      <div className="modal-panel transfer-panel"><h2 id="import-title">Импорт резервной копии</h2><p>Карточек: {prepared.cards.length}. Изображений: {prepared.media.length}. Глифов: {prepared.modules?.glyphs.length ?? 0}. Записей дневника: {prepared.modules?.diaryEntries.length ?? 0}.</p>{!prepared.modules && <p>Это старый архив словаря: глифов и дневника в нём нет.</p>}
-        <fieldset disabled={busy}><legend>Режим восстановления</legend>
-          <label><input type="radio" name="import-mode" checked={mode === 'merge'} onChange={() => { setMode('merge'); setConfirmed(false); }} />Объединить</label>
-          <p>Ваши карточки сохранятся. При совпадении ID останется существующая карточка.</p>
-          <label><input type="radio" name="import-mode" checked={mode === 'replace'} onChange={() => { setMode('replace'); setConfirmed(false); }} />Заменить</label>
-          {mode === 'replace' && <div className="replace-warning"><p>{prepared.modules ? 'Будут заменены словарь, глифы, дневник и группы. Сначала сохраните текущую резервную копию.' : 'Будет заменён только словарь. Глифы и дневник останутся. Сначала сохраните резервную копию.'}</p>
-            <button type="button" className="settings-inline-action" onClick={backup}>Скачать резервную копию</button>
-            <label><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} />Подтверждаю замену данных из архива. Резервная копия сохранена.</label>
-          </div>}
-          <button type="button" className="transfer-commit" disabled={mode === 'replace' && !confirmed} onClick={restore}>{busy ? 'Восстановление…' : mode === 'merge' ? 'Объединить словари' : 'Заменить словарь'}</button>
-        </fieldset>{error && <p role="alert">{error}</p>}{busy && <p role="status">{message}</p>}
-      </div>
-    </Modal>}
+  return <section className="settings-page settings-v12">
+    <h1 className="sr-only">Настройки</h1>
+    <motion.article className="active-profile-card" initial={reduced ? false : { opacity: 0, y: -Math.min(innerHeight * .5, 320) }}
+      animate={revealed ? { opacity: 1, y: 0 } : { opacity: 0, y: -Math.min(innerHeight * .5, 320) }} transition={reduced ? { duration: 0 } : { ...animation.gentleSpring, stiffness: 240, damping: 24 }}
+      onUpdate={pose => { if (revealed && introStep < 1 && typeof pose.y === 'number' && Math.abs(pose.y) <= 8 && Number(pose.opacity) >= .95) advanceIntro(1); }}
+      onAnimationComplete={() => { if (revealed) advanceIntro(1); }}>
+      <button type="button" className="profile-card-hit" aria-label="Открыть профили" disabled={busy} onClick={() => go('/settings/profiles')}/>
+      <ProfileAvatar icon={active.icon}/>
+      <AnimatePresence mode="wait" initial={false}><motion.div className="active-profile-title" key={active.id} initial={reduced ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={animation.fade}>
+        <button type="button" disabled={busy} onClick={() => setEdit(true)}>{active.name}</button><p>Текущий профиль</p>
+      </motion.div></AnimatePresence>
+      <button type="button" className="profile-pencil" aria-label="Редактировать текущий профиль" disabled={busy} onClick={() => setEdit(true)}><img src={pencil} alt=""/></button>
+      <button type="button" className="profile-next" aria-label="Следующий профиль" disabled={busy || profiles.length < 2} onClick={() => { void switchProfile(next.id); }}/>
+    </motion.article>
+    <ProfileDots selected={active.id} onSelect={id => { void switchProfile(id); }} delay={0} ready={dotsReady}
+      onApproach={() => { if (dotsReady) advanceIntro(2); }} onSettled={() => { if (dotsReady) advanceIntro(2); }}/>
+    <motion.div className="settings-sheet" initial={reduced ? false : { opacity: 0 }} animate={{ opacity: revealed ? 1 : 0 }} transition={reduced ? { duration: 0 } : animation.fade}>
+      <motion.h2 {...enterLink(0)}>Визуальная часть</motion.h2>
+      <div className="settings-link-list"><motion.button {...enterLink(0)} type="button" disabled>Кастомизация <small>Скоро</small></motion.button><motion.button {...enterLink(1)} type="button" disabled>Звуки и вибрация <small>Скоро</small></motion.button></div>
+      <motion.h2 {...enterLink(2)}>Аккаунты и профили</motion.h2>
+      <div className="settings-link-list"><motion.button {...enterLink(2)} type="button" disabled>Подписка <small>Скоро</small></motion.button><motion.button {...enterLink(3)} type="button" disabled={busy} onClick={() => go('/settings/backups')}>Аккаунт и резервные копии</motion.button></div>
+      <div className="settings-link-list settings-about"><motion.button {...enterLink(4)} type="button" onClick={() => setAbout(true)}
+        onUpdate={pose => { if (buttonsReady && introStep < 3 && Number(pose.opacity) >= .9) advanceIntro(3); }}
+        onAnimationComplete={() => { if (buttonsReady) advanceIntro(3); }}>О приложении</motion.button></div>
+      <motion.img className="sleepy-mascot" src={mascot} alt="Спящий Glyphy с табличкой Wake me up for a guide"
+        initial={reduced ? false : { opacity: 0 }} animate={{ opacity: buttonsReady && (reduced || introStep >= 3) ? 1 : 0 }} transition={reduced ? { duration: 0 } : animation.fade}/>
+    </motion.div>
+    {edit && <ProfileEditor profile={active} onClose={() => setEdit(false)}/>}
+    {about && <ProfileDialog title="О Glyphy" onClose={() => setAbout(false)}>
+      <p>Make your word!</p><p>Создай язык, которого не хватало твоим мыслям.</p>
+      <p>Ваши письменности, изображения и дневник хранятся на этом устройстве. Резервные копии позволяют перенести их в другую установку Glyphy.</p>
+      <p className="pwa-status" data-pwa-status={pwa.status}>{nativeRuntime ? 'Приложение готово к работе без интернета.' : pwa.offline ? 'Без подключения к сети' : pwa.status === 'ready' ? 'Готово к работе без сети' : 'Локальное хранение данных на устройстве'}</p>
+      {pwa.installable && <button className="profile-primary" onClick={() => { void installPwa(); }}>Установить Glyphy</button>}
+      {pwa.update && <button className="profile-primary" onClick={applyPwaUpdate}>Обновить приложение</button>}
+    </ProfileDialog>}
   </section>;
 }

@@ -3,7 +3,6 @@ import { jpegOrientation } from '../diary/media-policy.js';
 import JSZip from 'jszip/dist/jszip.min.js';
 import { imageDimensions } from './image-header.js';
 import Dexie from 'dexie';
-import { collectUnusedMedia } from '../../db/media-lifecycle.js';
 import { storeMedia } from '../../db/media-storage.js';
 import { GlyphyDatabase, type StoredSymbolCard } from '../../db/database.js';
 import type { MediaAsset, SymbolCard, CategoryMeaning } from '../../types/index.js';
@@ -74,7 +73,7 @@ function verifyImage(bytes: Uint8Array, mime: string) {
     }) : false;
   if (!valid) return fail('Содержимое изображения не соответствует разрешённому типу. Произвольные SVG не импортируются.');
 }
-async function readEntry(zip: JSZip, info: ZipEntryInfo): Promise<Uint8Array> {
+export async function readEntry(zip: JSZip, info: ZipEntryInfo): Promise<Uint8Array> {
   const entry = zip.file(info.name);
   if (!entry || entry.unsafeOriginalName && entry.unsafeOriginalName !== info.name) return fail('Недопустимый путь в ZIP.');
   return new Promise((resolve, reject) => {
@@ -178,7 +177,14 @@ export async function applyImport(db: GlyphyDatabase, prepared: PreparedArchive,
       await db.cards.clear();
       if (prepared.modules) { await db.glyphs.clear(); await db.diaryEntries.clear(); await db.diaryGroups.clear(); }
       // Legacy ZIP v1 still replaces only the dictionary.
-      for (const asset of await db.media.toArray()) await collectUnusedMedia(db, asset.id);
+      if (prepared.modules) await db.media.clear();
+      else {
+        const retained = new Set(moduleMediaIds({
+          glyphs: await db.glyphs.toArray(), diaryEntries: await db.diaryEntries.toArray(), diaryGroups: await db.diaryGroups.toArray(),
+        }));
+        const ids = await db.media.toCollection().primaryKeys();
+        await db.media.bulkDelete(ids.filter(id => !retained.has(id)));
+      }
     }
     const existing = new Set((await db.cards.toCollection().primaryKeys()).map(String));
     const cards = prepared.cards.filter(card => !existing.has(card.id));
@@ -190,16 +196,20 @@ export async function applyImport(db: GlyphyDatabase, prepared: PreparedArchive,
       modules.diaryGroups = prepared.modules.diaryGroups.filter(g => !existingGroups.has(g.id));
     }
     const needed = new Set([...cards.map(card => card.imageId).filter(Boolean), ...moduleMediaIds(modules)]), mapping = new Map<string, string>();
-    for (const asset of prepared.media.filter(asset => needed.has(asset.id))) {
-      let candidate = asset.id, previous = await db.media.get(candidate), attempt = 0;
+    const incoming = prepared.media.filter(asset => needed.has(asset.id));
+    const oldMedia = await db.media.bulkGet(incoming.map(asset => asset.id));
+    const additions: import('../../db/media-storage.js').StoredMediaAsset[] = [];
+    for (const [index, asset] of incoming.entries()) {
+      let candidate = asset.id, previous = oldMedia[index], attempt = 0;
       while (previous && !await Dexie.waitFor(sameMedia(previous, asset))) {
         const hash = crc32(new Uint8Array(await Dexie.waitFor(asset.blob.arrayBuffer()))).toString(16);
         candidate = `import-${asset.id.slice(0, 120)}-${hash}-${++attempt}`;
         previous = await db.media.get(candidate);
       }
-      if (!previous) await db.media.add({ ...storedMedia.get(asset.id)!, id: candidate });
+      if (!previous) additions.push({ ...storedMedia.get(asset.id)!, id: candidate });
       mapping.set(asset.id, candidate);
     }
+    await db.media.bulkAdd(additions);
     const stored: StoredSymbolCard[] = cards.map(card => ({ ...card, imageId: card.imageId ? mapping.get(card.imageId) ?? fail('Не удалось восстановить фотографию.') : null, categories: [...new Set(card.meanings.map(group => group.category))] }));
     await db.cards.bulkAdd(stored);
     const image = (id: string) => mapping.get(id) ?? fail('Не удалось восстановить изображение.');

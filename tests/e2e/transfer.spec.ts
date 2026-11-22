@@ -1,16 +1,16 @@
 import { test, expect } from '@playwright/test';
 
 test('settings ZIP restores into an isolated browser context without duplicates', async ({ page, browser, baseURL }, testInfo) => {
-  await page.goto('/?demo=1#/settings');
+  await page.goto('/?demo=1#/settings/backups');
   const downloadEvent = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Экспортировать словарь', exact: true }).click();
+  await page.getByRole('button', { name: 'Экспорт профиля', exact: true }).click();
   const download = await downloadEvent, path = testInfo.outputPath('dictionary.zip');
   await download.saveAs(path);
   const isolated = await browser.newContext({ baseURL });
   try {
     const target = await isolated.newPage();
-    await target.goto('/#/settings');
-    await target.getByLabel('ZIP-архив словаря', { exact: true }).setInputFiles(path);
+    await target.goto('/#/settings/backups');
+    await target.getByLabel('ZIP-архив профиля', { exact: true }).setInputFiles(path);
     await expect(target.getByRole('dialog', { name: 'Импорт резервной копии' })).toBeVisible();
     await expect(target.getByRole('dialog')).toContainText('Карточек: 2.');
     await target.getByRole('radio', { name: 'Заменить', exact: true }).check();
@@ -19,7 +19,7 @@ test('settings ZIP restores into an isolated browser context without duplicates'
     await target.getByRole('radio', { name: 'Объединить', exact: true }).check();
     await target.getByRole('button', { name: 'Объединить словари', exact: true }).click();
     await expect(target.getByText(/Импорт завершён\. Карточек добавлено: 2; уже существовали: 0\./, { exact: true })).toBeVisible();
-    await target.getByLabel('ZIP-архив словаря', { exact: true }).setInputFiles(path);
+    await target.getByLabel('ZIP-архив профиля', { exact: true }).setInputFiles(path);
     await target.getByRole('button', { name: 'Объединить словари', exact: true }).click();
     await expect(target.getByText(/Импорт завершён\. Карточек добавлено: 0; уже существовали: 2\./, { exact: true })).toBeVisible();
     await target.locator('.nav-center').click();

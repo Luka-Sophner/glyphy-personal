@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent }
 import { useBlocker, useLocation, useNavigate } from 'react-router-dom';
 import { useGlyphs } from '../features/glyphs/GlyphContext';
 import { useSymbols } from '../features/symbols/SymbolContext';
-import { glyphRepository } from '../db/repositories';
+import { useProfileSession } from '../features/profiles/ProfileContext';
 import { emptyGlyphCells, glyphPositionCategories, type GlyphCell, type GlyphPosition, type GlyphRecord, type GlyphPart } from '../types/glyphs-diary';
 import { createId } from '../lib/id';
 import { addSynonyms, createPickerIndex, glyphPositionLabels, replaceGlyphCell, validateGlyphInput } from '../features/glyphs/editor';
@@ -34,6 +34,7 @@ export function GlyphEditorModal({ glyphId }: { glyphId: string }) {
   return <Editor key={glyphId} glyphId={glyphId} />;
 }
 function Editor({ glyphId }: { glyphId: string }) {
+  const { glyphRepository } = useProfileSession();
   const { glyphs, setNotice, setQuery: setGlyphQuery } = useGlyphs(), { symbols } = useSymbols();
   const existing = useRef<GlyphRecord | undefined>(glyphs.find(glyph => glyph.id === glyphId)).current;
   const navigate = useNavigate(), location = useLocation(), { reduced } = useNavigationMotion();

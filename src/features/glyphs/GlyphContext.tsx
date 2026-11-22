@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { liveQuery } from 'dexie';
-import { repository, demoMode } from '../../db/repository';
-import { glyphRepository } from '../../db/repositories';
+import { demoMode } from '../../db/repository';
+import { useProfileSession } from '../profiles/ProfileContext';
 import { initializeDatabase } from '../symbols/demo';
 import { seedGlyphDemo } from './demo';
 import { createCompositionSearchIndex as createGlyphSearchIndex } from './composition-search';
@@ -18,6 +18,7 @@ interface GlyphState {
 }
 const Context = createContext<GlyphState | null>(null);
 export function GlyphProvider({ children }: { children: ReactNode }) {
+  const { repository, glyphRepository } = useProfileSession();
   const [glyphs, setGlyphs] = useState<GlyphRecord[]>([]), [loading, setLoading] = useState(true), [error, setError] = useState('');
   const [notice, setNotice] = useState(''), [retainedThumbnails, setRetainedThumbnails] = useState<ReadonlyMap<string, Blob>>(new Map());
   const [query, setQuery] = useState(''), views = useRef(new Map<string, GlyphViewState>());
@@ -33,7 +34,7 @@ export function GlyphProvider({ children }: { children: ReactNode }) {
   }, [glyphs, symbols]);
   useEffect(() => {
     let active = true, subscription: { unsubscribe: () => void } | undefined;
-    void initializeDatabase().then(() => seedGlyphDemo(repository.db, demoMode)).then(() => {
+    void initializeDatabase(repository).then(() => seedGlyphDemo(repository.db, demoMode && repository.db.name === 'glyphy-demo')).then(() => {
       if (!active) return;
       subscription = liveQuery(() => repository.db.transaction('r', repository.db.glyphs, repository.db.media, async () => {
         const rows = await glyphRepository.list();

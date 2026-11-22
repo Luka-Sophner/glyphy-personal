@@ -22,14 +22,9 @@ jobs:
           persist-credentials: false
       - name: Check signing setup
         env:
-          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          SIGNING_CONFIGURED: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' }}
         run: |
-          if [[ '${{ github.event.repository.private }}' != 'true' ]]; then
-            echo '::error::Use a PRIVATE repository for Glyphy.'
-            exit 1
-          fi
-          if [[ -z "$KEYSTORE" || -z "$PASSWORD" ]]; then
+          if [[ "$SIGNING_CONFIGURED" != 'true' ]]; then
             echo '::error::Complete GITHUB_ANDROID_GUIDE.md signing setup first.'
             exit 1
           fi

@@ -19,7 +19,7 @@ try {
         }
         $refs = @(Invoke-GlyphyGit -Repository $target -Arguments @('ls-remote','--exit-code','origin','refs/heads/main') -Network)
         if ($refs.Count -ne 1) { throw 'GitHub did not return main. Connection verification was not successful.' }
-        Write-Host 'Connection verified: private repository main is readable with the selected account.'
+        Write-Host 'Connection verified: repository main is readable with the selected account.'
         Write-Host 'No files copied, staged or committed. Nothing pushed. Write permission was not tested.'
         exit 0
     }
@@ -140,18 +140,18 @@ try {
         if ((@(Invoke-GlyphyGit -Repository $target -Arguments @('remote'))) -contains 'origin') {
             Write-Host 'Repository is already configured. To send reviewed updates, run send-github-update.bat.'
         } else {
-            Write-Host 'Review changes, commit, Publish repository and KEEP THE CODE PRIVATE.'
+            Write-Host 'Review the prepared source files and configure the GitHub repository in GitHub Desktop.'
         }
         exit 0
     }
     $origin = Invoke-GlyphyGit -Repository $target -Arguments @('remote','get-url','origin')
-    if ($LASTEXITCODE -ne 0 -or $origin -notmatch '^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:\.git)?/?$') { throw 'Publish the PRIVATE repository in GitHub Desktop first (HTTPS origin required).' }
+    if ($LASTEXITCODE -ne 0 -or $origin -notmatch '^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:\.git)?/?$') { throw 'Configure the GitHub repository in GitHub Desktop first (HTTPS origin required).' }
     Write-Host "Destination: $origin"
     Git-Run -Arguments @('diff','HEAD','--stat')
     Git-Run -Arguments @('status','--short')
-    Write-Host 'Check on GitHub that the repository is PRIVATE and review the file list above.'
-    $answer = Read-Host 'Type SEND PRIVATE to authorize upload, or press Enter to cancel'
-    if ($answer -cne 'SEND PRIVATE') { Write-Host 'Upload cancelled.'; exit 0 }
+    Write-Host 'Review the GitHub destination and the file list above before uploading.'
+    $answer = Read-Host 'Type SEND GLYPHY to authorize upload, or press Enter to cancel'
+    if ($answer -cne 'SEND GLYPHY') { Write-Host 'Upload cancelled.'; exit 0 }
     # Confirmation precedes even staging. Only reviewed paths are added.
     Git-Run -Arguments (@('add','--') + $files + @('.glyphy-snapshot.json'))
     Git-Run -Arguments @('add','-u')

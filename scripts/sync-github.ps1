@@ -11,7 +11,7 @@ function Run-Git([string[]]$Arguments) {
     return $result
 }
 $origin = Invoke-GlyphyGit -Repository $target -Arguments @('remote','get-url','origin') 2>$null
-if ($LASTEXITCODE -ne 0) { if ($Fetch) { throw 'No origin. Publish the PRIVATE repository in GitHub Desktop first.' }; return }
+if ($LASTEXITCODE -ne 0) { if ($Fetch) { throw 'No origin. Configure the GitHub repository in GitHub Desktop first.' }; return }
 if ($origin -notmatch '^https://github\.com/Luka-Sophner/glyphy-personal(?:\.git)?/?$') { throw 'Unexpected origin. Review the repository address before synchronizing.' }
 if ((Run-Git -Arguments @('branch','--show-current')) -ne 'main') { throw 'Switch GitHub-Glyphy to main in GitHub Desktop first.' }
 if ($Fetch) {
